@@ -13,15 +13,15 @@
 # limitations under the License.
 cmake_minimum_required(VERSION 3.15)
 
-project(libhal-__device__ LANGUAGES CXX)
+project(libhal-actuator LANGUAGES CXX)
 
 libhal_test_and_make_library(
-  LIBRARY_NAME libhal-__device__
+  LIBRARY_NAME libhal-actuator
 
   SOURCES
-  src/__device__.cpp
+  src/actuator.cpp
 
   TEST_SOURCES
-  tests/__device__.test.cpp
+  tests/actuator.test.cpp
   tests/main.test.cpp
 )
