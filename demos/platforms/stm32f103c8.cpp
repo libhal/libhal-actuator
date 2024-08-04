@@ -23,7 +23,7 @@
 #include <libhal-stm32f1/output_pin.hpp>
 #include <libhal-stm32f1/uart.hpp>
 
-#include "../resource_list.hpp"
+#include <resource_list.hpp>
 
 resource_list initialize_platform()
 {
@@ -44,9 +44,9 @@ resource_list initialize_platform()
   static hal::stm32f1::output_pin led('C', 13);
 
   return {
+    .reset = +[]() { hal::cortex_m::reset(); },
     .console = &uart1,
     .clock = &counter,
-    .led = &led,
-    .reset = +[]() { hal::cortex_m::reset(); },
+    .status_led = &led,
   };
 }

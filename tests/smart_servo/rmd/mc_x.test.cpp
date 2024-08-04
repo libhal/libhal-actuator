@@ -12,25 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <libhal-util/serial.hpp>
-#include <libhal-util/steady_clock.hpp>
+#include <libhal-actuator/smart_servo/rmd/mc_x.hpp>
 
-#include "../resource_list.hpp"
+#include <libhal-mock/can.hpp>
+#include <libhal-mock/steady_clock.hpp>
+#include <libhal-util/enum.hpp>
 
-void application(resource_list& p_map)
-{
-  using namespace std::chrono_literals;
+#include <boost/ut.hpp>
+
+namespace hal::actuator {
+boost::ut::suite test_rmd_mc_x = [] {
+  using namespace boost::ut;
+  using namespace std::literals;
   using namespace hal::literals;
 
-  auto& clock = *p_map.clock;
-  auto& console = *p_map.console;
-  auto& led = *p_map.led;
-
-  hal::print(console, "Demo Application Starting...\n\n");
-
-  while (true) {
-    hal::print(console, "Hello, world\n");
-    led.level(!led.level());  // Toggle LED
-    hal::delay(clock, 500ms);
-  }
-}
+  "hal::actuator::rmd_mc_x::rmd_mc_x()"_test = []() {};
+};
+}  // namespace hal::actuator

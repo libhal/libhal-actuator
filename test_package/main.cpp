@@ -12,9 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <libhal-actuator/actuator.hpp>
+#include <libhal-actuator/rc_servo.hpp>
+
+bool run = false;
 
 int main()
 {
-  hal::actuator::actuator_replace_me bar;
+  if (run) {
+    // This is fine because we don't actually run this code, we just need to
+    // construct something to verify that it links.
+    hal::pwm* null_pwm = nullptr;
+    hal::actuator::rc_servo bar(*null_pwm, {});
+  }
 }
