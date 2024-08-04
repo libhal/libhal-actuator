@@ -18,17 +18,18 @@
 #include <libhal-lpc40/clock.hpp>
 #include <libhal-lpc40/constants.hpp>
 #include <libhal-lpc40/output_pin.hpp>
+#include <libhal-lpc40/pwm.hpp>
 #include <libhal-lpc40/uart.hpp>
 #include <libhal-util/as_bytes.hpp>
 
-#include "../resource_list.hpp"
+#include <resource_list.hpp>
 
 resource_list initialize_platform()
 {
   using namespace hal::literals;
 
   // Set the MCU to the maximum clock speed
-  hal::lpc40::maximum(10.0_MHz);
+  hal::lpc40::maximum(12.0_MHz);
 
   // Create a hardware counter
   static hal::cortex_m::dwt_counter counter(
@@ -43,11 +44,13 @@ resource_list initialize_platform()
                                 });
 
   static hal::lpc40::output_pin led(1, 10);
+  static hal::lpc40::pwm pwm(1, 6);
 
   return {
+    .reset = []() { hal::cortex_m::reset(); },
     .console = &uart0,
     .clock = &counter,
-    .led = &led,
-    .reset = []() { hal::cortex_m::reset(); },
+    .status_led = &led,
+    .pwm = &pwm,
   };
 }

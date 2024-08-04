@@ -19,9 +19,24 @@ libhal_test_and_make_library(
   LIBRARY_NAME libhal-actuator
 
   SOURCES
-  src/actuator.cpp
+  src/rc_servo.cpp
+  src/smart_servo/rmd/drc_adaptors.cpp
+  src/smart_servo/rmd/drc.cpp
+  src/smart_servo/rmd/mc_x_adaptors.cpp
+  src/smart_servo/rmd/mc_x.cpp
 
   TEST_SOURCES
-  tests/actuator.test.cpp
   tests/main.test.cpp
+  tests/rc_servo.test.cpp
+  tests/smart_servo/rmd/drc.test.cpp
+  tests/smart_servo/rmd/mc_x.test.cpp
+  tests/smart_servo/rmd/drc_adaptors.test.cpp
+
+  PACKAGES
+  libhal-canrouter
+  libhal-mock
+
+  LINK_LIBRARIES
+  libhal::canrouter
+  libhal::mock
 )

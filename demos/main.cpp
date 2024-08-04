@@ -13,21 +13,31 @@
 // limitations under the License.
 
 #include <libhal-exceptions/control.hpp>
+#include <libhal-util/serial.hpp>
 #include <libhal-util/steady_clock.hpp>
 #include <libhal/error.hpp>
 
-#include "resource_list.hpp"
+#include <resource_list.hpp>
 
 resource_list resources{};
 
 [[noreturn]] void terminate_handler() noexcept
 {
-  using namespace std::chrono_literals;
 
-  auto& led = *resources.led;
-  auto& clock = *resources.clock;
+  if (not resources.status_led && not resources.console) {
+    // spin here until debugger is connected
+    while (true) {
+      continue;
+    }
+  }
+
+  // Otherwise, blink the led in a pattern
+
+  auto& led = *resources.status_led.value();
+  auto& clock = *resources.clock.value();
 
   while (true) {
+    using namespace std::chrono_literals;
     led.level(false);
     hal::delay(clock, 100ms);
     led.level(true);
@@ -41,17 +51,26 @@ resource_list resources{};
 
 int main()
 {
-  // Set terminate routine...
-  hal::set_terminate(terminate_handler);
-
   try {
     resources = initialize_platform();
   } catch (...) {
-    // Catch all exceptions preventing terminate from
-    hal::halt();
+    while (true) {
+      // halt here and wait for a debugger to connect
+      continue;
+    }
   }
 
-  application(resources);
-  resources.reset();
-  return 0;
+  hal::set_terminate(terminate_handler);
+
+  try {
+    application(resources);
+  } catch (std::bad_optional_access const& e) {
+    if (resources.console) {
+      hal::print(*resources.console.value(),
+                 "A resource required by the application was not available!\n"
+                 "Calling terminate!\n");
+    }
+  }  // Allow any other exceptions to terminate the application
+
+  std::terminate();
 }

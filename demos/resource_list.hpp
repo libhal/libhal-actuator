@@ -14,18 +14,23 @@
 
 #pragma once
 
+#include <optional>
+
+#include <libhal/can.hpp>
 #include <libhal/functional.hpp>
 #include <libhal/output_pin.hpp>
+#include <libhal/pwm.hpp>
 #include <libhal/serial.hpp>
 #include <libhal/steady_clock.hpp>
 
 struct resource_list
 {
-  hal::serial* console;
-  hal::steady_clock* clock;
-  hal::output_pin* led;
   hal::callback<void()> reset;
-  // Add more driver interfaces here ...
+  std::optional<hal::serial*> console = std::nullopt;
+  std::optional<hal::steady_clock*> clock = std::nullopt;
+  std::optional<hal::output_pin*> status_led = std::nullopt;
+  std::optional<hal::can*> can = std::nullopt;
+  std::optional<hal::pwm*> pwm = std::nullopt;
 };
 
 // Application function is implemented by one of the .cpp files.

@@ -12,20 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <libhal-actuator/actuator.hpp>
+#include <libhal-actuator/smart_servo/rmd/drc.hpp>
+
+#include <libhal-mock/can.hpp>
+#include <libhal-mock/steady_clock.hpp>
+#include <libhal-util/enum.hpp>
 
 #include <boost/ut.hpp>
 
-namespace hal::actuator {
-void actuator_test()
+namespace hal::rmd {
+namespace {
+struct drc_inert_can : public hal::can
 {
+private:
+  void driver_configure(settings const&) override
+  {
+  }
+
+  void driver_bus_on() override
+  {
+  }
+
+  void driver_send(message_t const&) override
+  {
+  }
+
+  void driver_on_receive(hal::callback<handler>) override
+  {
+  }
+};
+}  // namespace
+
+boost::ut::suite test_rmd_drc_adaptors = [] {
   using namespace boost::ut;
   using namespace std::literals;
-
-  "actuator::create()"_test = []() {
-    // Setup
-    // Exercise
-    // Verify
-  };
+  using namespace hal::literals;
 };
-}  // namespace hal::actuator
+}  // namespace hal::rmd

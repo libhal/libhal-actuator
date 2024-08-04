@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace hal::actuator {
-extern void actuator_test();
-}  // namespace hal::actuator
-
 int main()
 {
-  hal::actuator::actuator_test();
+  // NOTE: Keep the comment below this one:
+  // All tests run and execute before main. If a set of tests must be performed
+  // in a specific order, then place the tests into a free function and call
+  // that free function below.
+
+  // NOTE: Remove this line and the line below after the first test is called
+  // No functions called yet...
 }

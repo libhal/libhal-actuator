@@ -18,7 +18,12 @@ project(demos LANGUAGES CXX)
 
 libhal_build_demos(
   DEMOS
-  actuator
+  drc
+  mc_x
+  rc_servo
+
+  INCLUDES
+  .
 
   PACKAGES
   libhal-actuator
