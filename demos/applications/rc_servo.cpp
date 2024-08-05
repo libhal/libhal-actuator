@@ -42,7 +42,7 @@ void application(resource_list& p_map)
   hal::actuator::rc_servo servo(pwm, rc_servo_settings);
 
   hal::print(console, "In 5 seconds...\n");
-  hal::delay(clock, 2000ms);
+  hal::delay(clock, 5000ms);
 
   // Oscillate from the servo horn back and forth
   while (true) {
