@@ -5,7 +5,8 @@
 [![GitHub forks](https://img.shields.io/github/forks/libhal/libhal-actuator.svg)](https://github.com/libhal/libhal-actuator/network)
 [![GitHub issues](https://img.shields.io/github/issues/libhal/libhal-actuator.svg)](https://github.com/libhal/libhal-actuator/issues)
 
-libhal compatible device library for the actuator family of devices.
+libhal drivers for actuator and their controllers for servos, motors, fans,
+pumps, and anything else that can kinetically moves something.
 
 ## 🏗️ Building Demos
 
