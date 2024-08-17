@@ -23,19 +23,19 @@ resource_list resources{};
 
 [[noreturn]] void terminate_handler() noexcept
 {
-
-  if (not resources.status_led && not resources.console) {
-    // spin here until debugger is connected
+  if (not resources.status_led && not resources.clock) {
+    // spin here and wait for a debugger to be connected...
     while (true) {
       continue;
     }
   }
 
-  // Otherwise, blink the led in a pattern
+  // Safe access via ::value() is not necessary here since we have already
+  // checked the resources above.
+  auto& led = **resources.status_led;
+  auto& clock = **resources.clock;
 
-  auto& led = *resources.status_led.value();
-  auto& clock = *resources.clock.value();
-
+  // Otherwise, blink the led in a pattern...
   while (true) {
     using namespace std::chrono_literals;
     led.level(false);
@@ -51,16 +51,8 @@ resource_list resources{};
 
 int main()
 {
-  try {
-    resources = initialize_platform();
-  } catch (...) {
-    while (true) {
-      // halt here and wait for a debugger to connect
-      continue;
-    }
-  }
-
   hal::set_terminate(terminate_handler);
+  resources = initialize_platform();
 
   try {
     application(resources);
@@ -72,5 +64,6 @@ int main()
     }
   }  // Allow any other exceptions to terminate the application
 
+  // Terminate if the code reaches this point.
   std::terminate();
 }
