@@ -24,7 +24,7 @@
 
 #include <resource_list.hpp>
 
-resource_list initialize_platform()
+void initialize_platform(resource_list& p_resources)
 {
   using namespace hal::literals;
 
@@ -46,11 +46,9 @@ resource_list initialize_platform()
   static hal::lpc40::output_pin led(1, 10);
   static hal::lpc40::pwm pwm(1, 6);
 
-  return {
-    .reset = []() { hal::cortex_m::reset(); },
-    .console = &uart0,
-    .clock = &counter,
-    .status_led = &led,
-    .pwm = &pwm,
-  };
+  p_resources.reset = []() { hal::cortex_m::reset(); };
+  p_resources.console = &uart0;
+  p_resources.clock = &counter;
+  p_resources.status_led = &led;
+  p_resources.pwm = &pwm;
 }

@@ -34,5 +34,5 @@ struct resource_list
 };
 
 // Application function is implemented by one of the .cpp files.
-resource_list initialize_platform();
-void application(resource_list& p_map);
+void initialize_platform(resource_list& p_resources);
+void application(resource_list& p_resources);

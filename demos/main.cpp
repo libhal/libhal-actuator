@@ -35,6 +35,11 @@ resource_list resources{};
   auto& led = **resources.status_led;
   auto& clock = **resources.clock;
 
+  if (resources.console) {
+    hal::print(*resources.console.value(),
+               "Application Terminated!! Status LED: TERMINATE PATTERN\n");
+  }
+
   // Otherwise, blink the led in a pattern...
   while (true) {
     using namespace std::chrono_literals;
@@ -52,7 +57,7 @@ resource_list resources{};
 int main()
 {
   hal::set_terminate(terminate_handler);
-  resources = initialize_platform();
+  initialize_platform(resources);
 
   try {
     application(resources);
