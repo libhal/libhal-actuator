@@ -17,6 +17,7 @@
 #include <libhal-util/serial.hpp>
 #include <libhal-util/steady_clock.hpp>
 
+#include <libhal/units.hpp>
 #include <resource_list.hpp>
 
 void application(resource_list& p_map)
@@ -28,116 +29,162 @@ void application(resource_list& p_map)
   auto& console = *p_map.console.value();
   auto& can = *p_map.can.value();
 
-  hal::print(console, "RMD MC-X Smart Servo Application Starting...\n\n");
+  // Needs to be set to this baud rate to work with the default firmware CAN
+  // baud rate.
+  can.configure({ .baud_rate = 1.0_MHz });
 
   hal::can_router router(can);
-  hal::actuator::rmd_mc_x mc_x(router, clock, 36.0f, 0x141);
 
-  auto print_feedback = [&mc_x, &console]() {
-    mc_x.feedback_request(hal::actuator::rmd_mc_x::read::status_2);
-    mc_x.feedback_request(hal::actuator::rmd_mc_x::read::multi_turns_angle);
-    mc_x.feedback_request(
-      hal::actuator::rmd_mc_x::read::status_1_and_error_flags);
+  hal::print(console, "RMD MC-X Smart Servo Application Starting...\n\n");
 
-    hal::print<2048>(console,
-                     "[%u] =================================\n"
-                     "raw_multi_turn_angle = %f\n"
-                     "raw_current = %d\n"
-                     "raw_speed = %d\n"
-                     "raw_volts = %d\n"
-                     "encoder = %d\n"
-                     "raw_motor_temperature = %d"
-                     "\n"
-                     "-------\n"
-                     "angle() = %f °deg\n"
-                     "current() = %f A\n"
-                     "speed() = %f rpm\n"
-                     "volts() = %f V\n"
-                     "temperature() = %f °C\n"
-                     "motor_stall() = %d\n"
-                     "low_pressure() = %d\n"
-                     "over_voltage() = %d\n"
-                     "over_current() = %d\n"
-                     "power_overrun() = %d\n"
-                     "speeding() = %d\n"
-                     "over_temperature() = %d\n"
-                     "encoder_calibration_error() = %d\n"
-                     "\n",
-
-                     mc_x.feedback().message_number,
-                     static_cast<float>(mc_x.feedback().raw_multi_turn_angle),
-                     mc_x.feedback().raw_current,
-                     mc_x.feedback().raw_speed,
-                     mc_x.feedback().raw_volts,
-                     mc_x.feedback().encoder,
-                     mc_x.feedback().raw_motor_temperature,
-                     mc_x.feedback().angle(),
-                     mc_x.feedback().current(),
-                     mc_x.feedback().speed(),
-                     mc_x.feedback().volts(),
-                     mc_x.feedback().temperature(),
-                     mc_x.feedback().motor_stall(),
-                     mc_x.feedback().low_pressure(),
-                     mc_x.feedback().over_voltage(),
-                     mc_x.feedback().over_current(),
-                     mc_x.feedback().power_overrun(),
-                     mc_x.feedback().speeding(),
-                     mc_x.feedback().over_temperature(),
-                     mc_x.feedback().encoder_calibration_error());
-  };
+  constexpr std::uint16_t starting_device_address = 0x140;
+  std::uint16_t address_offset = 0;
 
   while (true) {
-    mc_x.velocity_control(50.0_rpm);
-    hal::delay(clock, 5000ms);
-    print_feedback();
+    try {
+      auto const address = starting_device_address + address_offset;
+      hal::print<32>(console, "Using address: 0x%04X\n", address);
+      hal::actuator::rmd_mc_x mc_x(router, clock, 36.0f, address);
 
-    mc_x.velocity_control(0.0_rpm);
-    hal::delay(clock, 2000ms);
-    print_feedback();
+      auto print_feedback = [&mc_x, &console]() {
+        mc_x.feedback_request(hal::actuator::rmd_mc_x::read::status_2);
+        mc_x.feedback_request(hal::actuator::rmd_mc_x::read::multi_turns_angle);
+        mc_x.feedback_request(
+          hal::actuator::rmd_mc_x::read::status_1_and_error_flags);
 
-    mc_x.velocity_control(-50.0_rpm);
-    hal::delay(clock, 5000ms);
-    print_feedback();
+        hal::print<2048>(
+          console,
+          "[%u] =================================\n"
+          "raw_multi_turn_angle = %f\n"
+          "raw_current = %d\n"
+          "raw_speed = %d\n"
+          "raw_volts = %d\n"
+          "encoder = %d\n"
+          "raw_motor_temperature = %d"
+          "\n"
+          "-------\n"
+          "angle() = %f °deg\n"
+          "current() = %f A\n"
+          "speed() = %f rpm\n"
+          "volts() = %f V\n"
+          "temperature() = %f °C\n"
+          "motor_stall() = %d\n"
+          "low_pressure() = %d\n"
+          "over_voltage() = %d\n"
+          "over_current() = %d\n"
+          "power_overrun() = %d\n"
+          "speeding() = %d\n"
+          "over_temperature() = %d\n"
+          "encoder_calibration_error() = %d\n"
+          "\n",
 
-    mc_x.velocity_control(0.0_rpm);
-    hal::delay(clock, 2000ms);
-    print_feedback();
+          mc_x.feedback().message_number,
+          static_cast<float>(mc_x.feedback().raw_multi_turn_angle),
+          mc_x.feedback().raw_current,
+          mc_x.feedback().raw_speed,
+          mc_x.feedback().raw_volts,
+          mc_x.feedback().encoder,
+          mc_x.feedback().raw_motor_temperature,
+          mc_x.feedback().angle(),
+          mc_x.feedback().current(),
+          mc_x.feedback().speed(),
+          mc_x.feedback().volts(),
+          mc_x.feedback().temperature(),
+          mc_x.feedback().motor_stall(),
+          mc_x.feedback().low_pressure(),
+          mc_x.feedback().over_voltage(),
+          mc_x.feedback().over_current(),
+          mc_x.feedback().power_overrun(),
+          mc_x.feedback().speeding(),
+          mc_x.feedback().over_temperature(),
+          mc_x.feedback().encoder_calibration_error());
+      };
 
-    // Position control above 40 RPM seems to cause issues with position control
-    mc_x.position_control(0.0_deg, 30.0_rpm);
+      while (true) {
+        mc_x.velocity_control(50.0_rpm);
+        hal::delay(clock, 5000ms);
+        print_feedback();
+
+        mc_x.velocity_control(0.0_rpm);
+        hal::delay(clock, 2000ms);
+        print_feedback();
+
+        mc_x.velocity_control(-50.0_rpm);
+        hal::delay(clock, 5000ms);
+        print_feedback();
+
+        mc_x.velocity_control(0.0_rpm);
+        hal::delay(clock, 2000ms);
+        print_feedback();
+
+        // Position control above 40 RPM seems to cause issues with position
+        // control
+        mc_x.position_control(0.0_deg, 30.0_rpm);
+        hal::delay(clock, 1s);
+        print_feedback();
+
+        mc_x.position_control(90.0_deg, 30.0_rpm);
+        hal::delay(clock, 2s);
+        print_feedback();
+
+        mc_x.position_control(180.0_deg, 30.0_rpm);
+        hal::delay(clock, 2s);
+        print_feedback();
+
+        mc_x.position_control(90.0_deg, 30.0_rpm);
+        hal::delay(clock, 2s);
+        print_feedback();
+
+        mc_x.position_control(0.0_deg, 30.0_rpm);
+        hal::delay(clock, 2s);
+        print_feedback();
+
+        mc_x.position_control(-45.0_deg, 30.0_rpm);
+        hal::delay(clock, 2s);
+        print_feedback();
+
+        mc_x.position_control(-90.0_deg, 30.0_rpm);
+        hal::delay(clock, 2s);
+        print_feedback();
+
+        mc_x.position_control(-45.0_deg, 30.0_rpm);
+        hal::delay(clock, 2s);
+        print_feedback();
+
+        mc_x.position_control(0.0_deg, 30.0_rpm);
+        hal::delay(clock, 2s);
+        print_feedback();
+      }
+    } catch (hal::timed_out const&) {
+      hal::print(
+        console,
+        "hal::timed_out exception! which means that the device did not "
+        "respond. Moving to the next device address in the list.\n");
+    } catch (hal::resource_unavailable_try_again const& p_error) {
+      hal::print(console, "hal::resource_unavailable_try_again\n");
+      if (p_error.instance() == &can) {
+        hal::print(
+          console,
+          "\n"
+          "The CAN peripheral has received no acknowledgements from any other "
+          "device on the bus. It appears as if the peripheral is not connected "
+          "to a can network. This can happen if the baud rate is incorrect, "
+          "the CAN transceiver is not functioning, or the devices on the bus "
+          "are not responding."
+          "\n"
+          "Calling terminate!"
+          "\n"
+          "Consider powering down the system and checking all of your "
+          "connections before restarting the application.");
+        std::terminate();
+      }
+      // otherwise keep trying with other addresses
+    } catch (...) {
+      hal::print(console, "Unknown exception caught in (...) block\n");
+      throw;
+    }
+
+    address_offset = (address_offset + 1) % 32;
     hal::delay(clock, 1s);
-    print_feedback();
-
-    mc_x.position_control(90.0_deg, 30.0_rpm);
-    hal::delay(clock, 2s);
-    print_feedback();
-
-    mc_x.position_control(180.0_deg, 30.0_rpm);
-    hal::delay(clock, 2s);
-    print_feedback();
-
-    mc_x.position_control(90.0_deg, 30.0_rpm);
-    hal::delay(clock, 2s);
-    print_feedback();
-
-    mc_x.position_control(0.0_deg, 30.0_rpm);
-    hal::delay(clock, 2s);
-    print_feedback();
-
-    mc_x.position_control(-45.0_deg, 30.0_rpm);
-    hal::delay(clock, 2s);
-    print_feedback();
-
-    mc_x.position_control(-90.0_deg, 30.0_rpm);
-    hal::delay(clock, 2s);
-    print_feedback();
-
-    mc_x.position_control(-45.0_deg, 30.0_rpm);
-    hal::delay(clock, 2s);
-    print_feedback();
-
-    mc_x.position_control(0.0_deg, 30.0_rpm);
-    hal::delay(clock, 2s);
-    print_feedback();
   }
 }
