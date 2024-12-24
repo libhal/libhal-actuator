@@ -18,6 +18,7 @@
 #include <libhal-armcortex/startup.hpp>
 #include <libhal-armcortex/system_control.hpp>
 
+#include <libhal-stm32f1/can.hpp>
 #include <libhal-stm32f1/clock.hpp>
 #include <libhal-stm32f1/constants.hpp>
 #include <libhal-stm32f1/output_pin.hpp>
@@ -47,4 +48,19 @@ void initialize_platform(resource_list& p_resources)
   p_resources.console = &uart1;
   p_resources.clock = &counter;
   p_resources.status_led = &led;
+
+  if constexpr (use_can_v1) {
+    static hal::stm32f1::can driver({}, hal::stm32f1::can_pins::pb9_pb8);
+    p_resources.can = &driver;
+  } else {
+    static std::array<hal::can_message, 4> receive_buffer{};
+    static hal::stm32f1::can_peripheral_manager can(
+      100_kHz, hal::stm32f1::can_pins::pb9_pb8);
+    static auto can_transceiver = can.acquire_transceiver(receive_buffer);
+    p_resources.can_transceiver = &can_transceiver;
+    static auto can_bus_manager = can.acquire_bus_manager();
+    p_resources.can_bus_manager = &can_bus_manager;
+    static auto can_identifier_filter = can.acquire_identifier_filter();
+    p_resources.can_identifier_filter = &can_identifier_filter.filter[0];
+  }
 }
