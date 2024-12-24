@@ -81,11 +81,6 @@ rmd_drc_motor make_motor(rmd_drc& p_drc, hal::rpm p_max_speed)
   return { p_drc, std::abs(p_max_speed) };
 }
 
-int make_servo(hal::rpm p_max_speed)
-{
-  return static_cast<int>(5 * p_max_speed);
-}
-
 rmd_drc_angular_velocity_sensor::rmd_drc_angular_velocity_sensor(rmd_drc& p_drc)
   : m_drc(&p_drc)
 {

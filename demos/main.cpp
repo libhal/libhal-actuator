@@ -53,7 +53,7 @@ resource_list resources{};
     hal::delay(clock, 1000ms);
   }
 }
-
+// test
 int main()
 {
   hal::set_terminate(terminate_handler);

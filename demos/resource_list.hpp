@@ -26,13 +26,17 @@
 struct resource_list
 {
   hal::callback<void()> reset;
-  std::optional<hal::serial*> console = std::nullopt;
-  std::optional<hal::steady_clock*> clock = std::nullopt;
-  std::optional<hal::output_pin*> status_led = std::nullopt;
-  std::optional<hal::can*> can = std::nullopt;
-  std::optional<hal::pwm*> pwm = std::nullopt;
+  std::optional<hal::serial*> console;
+  std::optional<hal::steady_clock*> clock;
+  std::optional<hal::output_pin*> status_led;
+  std::optional<hal::can*> can;
+  std::optional<hal::can_transceiver*> can_transceiver;
+  std::optional<hal::can_bus_manager*> can_bus_manager;
+  std::optional<hal::pwm*> pwm;
 };
 
 // Application function is implemented by one of the .cpp files.
 void initialize_platform(resource_list& p_resources);
 void application(resource_list& p_resources);
+
+constexpr bool use_can_v1 = false;
