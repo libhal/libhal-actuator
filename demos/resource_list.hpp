@@ -32,6 +32,7 @@ struct resource_list
   std::optional<hal::can*> can;
   std::optional<hal::can_transceiver*> can_transceiver;
   std::optional<hal::can_bus_manager*> can_bus_manager;
+  std::optional<hal::can_identifier_filter*> can_identifier_filter;
   std::optional<hal::pwm*> pwm;
 };
 

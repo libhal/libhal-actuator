@@ -28,6 +28,7 @@ void application(resource_list& p_resources)
   auto& console = *p_resources.console.value();
   auto& can_transceiver = *p_resources.can_transceiver.value();
   auto& can_bus_manager = *p_resources.can_bus_manager.value();
+  auto& can_identifier_filter = *p_resources.can_identifier_filter.value();
 
   // Needs to be set to this baud rate to work with the default firmware CAN
   // baud rate.
@@ -41,7 +42,8 @@ void application(resource_list& p_resources)
   while (true) {
     try {
       auto const address = starting_device_address + address_offset;
-      hal::actuator::rmd_drc_v2 drc(can_transceiver, clock, 6.0f, address);
+      hal::actuator::rmd_drc_v2 drc(
+        can_transceiver, can_identifier_filter, clock, 6.0f, address);
 
       auto print_feedback = [&drc, &console]() {
         drc.feedback_request(hal::actuator::rmd_drc_v2::read::status_2);

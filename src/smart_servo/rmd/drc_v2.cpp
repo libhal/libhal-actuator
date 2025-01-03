@@ -21,6 +21,7 @@
 #include <libhal-util/enum.hpp>
 #include <libhal-util/map.hpp>
 #include <libhal-util/steady_clock.hpp>
+#include <libhal/can.hpp>
 #include <libhal/error.hpp>
 #include <libhal/servo.hpp>
 
@@ -90,6 +91,7 @@ rmd_drc_v2::feedback_t const& rmd_drc_v2::feedback() const
 }
 
 rmd_drc_v2::rmd_drc_v2(hal::can_transceiver& p_can,
+                       hal::can_identifier_filter& p_filter,
                        hal::steady_clock& p_clock,
                        float p_gear_ratio,  // NOLINT
                        hal::u32 p_device_id,
@@ -100,6 +102,7 @@ rmd_drc_v2::rmd_drc_v2(hal::can_transceiver& p_can,
   , m_gear_ratio(p_gear_ratio)
   , m_max_response_time(p_max_response_time)
 {
+  p_filter.allow(p_device_id);
   rmd_drc_v2::system_control(system::off);
   rmd_drc_v2::system_control(system::running);
 }

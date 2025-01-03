@@ -109,6 +109,7 @@ bool rmd_mc_x_v2::feedback_t::encoder_calibration_error() const noexcept
 }
 
 rmd_mc_x_v2::rmd_mc_x_v2(hal::can_transceiver& p_can_transceiver,
+                         hal::can_identifier_filter& p_filter,
                          hal::steady_clock& p_clock,
                          float p_gear_ratio,  // NOLINT
                          hal::u32 p_device_id,
@@ -122,6 +123,8 @@ rmd_mc_x_v2::rmd_mc_x_v2(hal::can_transceiver& p_can_transceiver,
 {
   bool const valid_device_id =
     first_device_address <= p_device_id && p_device_id <= last_device_address;
+
+  p_filter.allow(p_device_id + response_id_offset);
 
   bool const invalid_baud_rate = p_can_transceiver.baud_rate() != 1_MHz;
 

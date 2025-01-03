@@ -254,7 +254,10 @@ public:
    *
    * This factory function will power cycle the motor
    *
-   * @param p_router - can_transceiver
+   * @param p_transceiver - The can transceiver connected to the bus with the
+   * servo present.
+   * @param p_filter - Identifier filter to allow responses from the servo to be
+   * received by the device.
    * @param p_device_id - The CAN ID of the motor
    * @param p_clock - clocked used to determine timeouts
    * @param p_gear_ratio - gear ratio of the motor
@@ -263,7 +266,8 @@ public:
    * @throws hal::timed_out - if the p_max_response_time is exceeded
    */
   rmd_drc_v2(
-    hal::can_transceiver& p_router,
+    hal::can_transceiver& p_transceiver,
+    hal::can_identifier_filter& p_filter,
     hal::steady_clock& p_clock,
     float p_gear_ratio,
     hal::u32 p_device_id,

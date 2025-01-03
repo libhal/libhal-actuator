@@ -32,5 +32,8 @@ void initialize_platform(resource_list& p_resources)
     static std::array<can_message, 4> receive_buffer{};
     p_resources.can_transceiver =
       &hal::micromod::v1::can_transceiver(receive_buffer);
+    p_resources.can_bus_manager = &hal::micromod::v1::can_bus_manager();
+    p_resources.can_identifier_filter =
+      &hal::micromod::v1::can_identifier_filter0();
   }
 }

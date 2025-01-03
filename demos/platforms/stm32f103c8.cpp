@@ -58,5 +58,9 @@ void initialize_platform(resource_list& p_resources)
       100_kHz, hal::stm32f1::can_pins::pb9_pb8);
     static auto can_transceiver = can.acquire_transceiver(receive_buffer);
     p_resources.can_transceiver = &can_transceiver;
+    static auto can_bus_manager = can.acquire_bus_manager();
+    p_resources.can_bus_manager = &can_bus_manager;
+    static auto can_identifier_filter = can.acquire_identifier_filter();
+    p_resources.can_identifier_filter = &can_identifier_filter.filter[0];
   }
 }

@@ -29,6 +29,7 @@ void application(resource_list& p_map)
   auto& console = *p_map.console.value();
   auto& can_transceiver = *p_map.can_transceiver.value();
   auto& can_bus_manager = *p_map.can_bus_manager.value();
+  auto& can_identifier_filter = *p_map.can_identifier_filter.value();
 
   // Needs to be set to this baud rate to work with the default firmware CAN
   // baud rate.
@@ -43,7 +44,8 @@ void application(resource_list& p_map)
     try {
       auto const address = starting_device_address + address_offset;
       hal::print<32>(console, "Using address: 0x%04X\n", address);
-      hal::actuator::rmd_mc_x_v2 mc_x(can_transceiver, clock, 36.0f, address);
+      hal::actuator::rmd_mc_x_v2 mc_x(
+        can_transceiver, can_identifier_filter, clock, 36.0f, address);
 
       auto motor = mc_x.acquire_motor(20.0_rpm);
       auto servo = mc_x.acquire_servo(20.0_rpm);

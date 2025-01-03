@@ -175,6 +175,8 @@ public:
    * @brief Create a new rmd_mc_x_v2 device driver
    *
    * @param p_router - can router to use
+   * @param p_filter - identifier filter to allow messages from the MC_X device
+   * to be received.
    * @param p_clock - clocked used to determine timeouts
    * @param p_gear_ratio - gear ratio of the motor
    * @param p_device_id - The message ID of the motor. Valid inputs are 0x140 to
@@ -189,6 +191,7 @@ public:
    */
   rmd_mc_x_v2(
     hal::can_transceiver& p_router,
+    can_identifier_filter& p_filter,
     hal::steady_clock& p_clock,
     float p_gear_ratio,
     hal::u32 p_device_id,
