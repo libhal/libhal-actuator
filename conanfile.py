@@ -31,7 +31,7 @@ class libhal_actuator_conan(ConanFile):
 
     def requirements(self):
         self.requires("libhal/[^4.9.0]", transitive_headers=True)
-        self.requires("libhal-util/[^5.3.0]", transitive_headers=True)
+        self.requires("libhal-util/[^5.4.1]", transitive_headers=True)
         self.requires("libhal-canrouter/[^3.0.0]")
 
     def package_info(self):
