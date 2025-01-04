@@ -26,14 +26,12 @@ class libhal_actuator_conan(ConanFile):
     topics = ("actuator", "libhal", "driver")
     settings = "compiler", "build_type", "os", "arch"
 
-    python_requires = "libhal-bootstrap/[^3.0.0]"
+    python_requires = "libhal-bootstrap/[^4.1.1]"
     python_requires_extend = "libhal-bootstrap.library"
 
     def requirements(self):
-        # Adds libhal and libhal-util as transitive headers, meaning library
-        # consumers get the libhal and libhal-util headers downstream.
-        bootstrap = self.python_requires["libhal-bootstrap"]
-        bootstrap.module.add_library_requirements(self)
+        self.requires("libhal/[^4.9.0]", transitive_headers=True)
+        self.requires("libhal-util/[^5.4.1]", transitive_headers=True)
         self.requires("libhal-canrouter/[^3.0.0]")
 
     def package_info(self):

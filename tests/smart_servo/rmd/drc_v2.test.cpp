@@ -20,11 +20,12 @@
 #include <libhal-util/enum.hpp>
 
 #include <boost/ut.hpp>
+#include <libhal/can.hpp>
 
 namespace hal::actuator {
 namespace {
-constexpr can::id_t expected_id = 0x140;
-constexpr can::id_t expected_gear_ratio = 6.0f;
+constexpr hal::u32 expected_id = 0x140;
+constexpr hal::u32 expected_gear_ratio = 6.0f;
 
 template<size_t N>
 constexpr auto prefilled_messages(hal::byte p_command_byte = 0x00)
@@ -48,7 +49,7 @@ std::queue<std::uint64_t> create_queue()
   return new_queue;
 }
 
-struct rmd_responder : public hal::can
+struct rmd_responder : public hal::can_transceiver
 {
   /**
    * @brief Reset spy information for functions
@@ -56,49 +57,34 @@ struct rmd_responder : public hal::can
    */
   void reset()
   {
-    spy_configure.reset();
     spy_send.reset();
-    spy_bus_on.reset();
   }
 
-  /// Spy handler for hal::can::configure()
-  spy_handler<settings> spy_configure;
   /// Spy handler for hal::can::send()
-  spy_handler<message_t> spy_send;
-  /// Spy handler for hal::can::bus_on() will always have content of "true"
-  spy_handler<bool> spy_bus_on;
-  /// Spy handler for hal::can::on_receive()
-  hal::callback<handler> m_on_receive = [](message_t const&) {};
+  spy_handler<can_message> spy_send;
+  std::array<can_message, 16> receive_buffer;
+  std::size_t cursor;
+
+  // void recieve
 
 private:
-  void driver_configure(settings const& p_settings) override
+  hal::u32 driver_baud_rate() override
   {
-    return spy_configure.record(p_settings);
+    return 1_MHz;
   }
 
-  void driver_bus_on() override
-  {
-    return spy_bus_on.record(true);
-  }
-
-  void driver_send(message_t const& p_message) override
+  void driver_send(can_message const& p_message) override
   {
     spy_send.record(p_message);
-    m_on_receive(p_message);
-  }
-
-  void driver_on_receive(hal::callback<handler> p_handler) override
-  {
-    m_on_receive = p_handler;
   }
 };
 }  // namespace
 
-boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
+boost::ut::suite<"test_rmd_drc_v2"> test_rmd_drc_v2 = [] {
   using namespace boost::ut;
   using namespace std::literals;
 
-  "rmd_drc::rmd_drc()"_test = []() {
+  "rmd_drc_v2::rmd_drc_v2()"_test = []() {
     // Setup
     rmd_responder mock_can;
     mock::steady_clock mock_steady;
@@ -107,11 +93,11 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     mock_steady.set_frequency(1.0_MHz);
     hal::can_router router(mock_can);
     auto expected = prefilled_messages<2>();
-    expected[0].payload[0] = hal::value(rmd_drc::system::off);
-    expected[1].payload[0] = hal::value(rmd_drc::system::running);
+    expected[0].payload[0] = hal::value(rmd_drc_v2::system::off);
+    expected[1].payload[0] = hal::value(rmd_drc_v2::system::running);
 
     // Exercise
-    rmd_drc driver(router, mock_steady, expected_gear_ratio, expected_id);
+    rmd_drc_v2 driver(router, mock_steady, expected_gear_ratio, expected_id);
 
     // Verify
     expect(that % 2 == mock_can.spy_send.call_history().size());
@@ -119,7 +105,7 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     expect(that % expected[1] == mock_can.spy_send.history<0>(1));
   };
 
-  "rmd_drc::rmd_drc() failure"_test = []() {
+  "rmd_drc_v2::rmd_drc_v2() failure"_test = []() {
     // Setup
     rmd_responder mock_can;
     mock::steady_clock mock_steady;
@@ -132,7 +118,7 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
 
     constexpr can::message_t expected1{
       .id = expected_id,
-      .payload = { hal::value(rmd_drc::system::off),
+      .payload = { hal::value(rmd_drc_v2::system::off),
                    0x00,
                    0x00,
                    0x00,
@@ -145,7 +131,7 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
 
     // Exercise
     expect(throws<hal::io_error>([&]() {
-      rmd_drc driver(router, mock_steady, expected_gear_ratio, expected_id);
+      rmd_drc_v2 driver(router, mock_steady, expected_gear_ratio, expected_id);
     }));
 
     // Verify
@@ -153,7 +139,7 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     expect(that % expected1 == mock_can.spy_send.history<0>(0));
   };
 
-  "rmd_drc::velocity_control()"_test = []() {
+  "rmd_drc_v2::velocity_control()"_test = []() {
     // Setup
     rmd_responder mock_can;
     mock::steady_clock mock_steady;
@@ -161,9 +147,10 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     mock_steady.set_uptimes(queue);
     mock_steady.set_frequency(1.0_MHz);
     hal::can_router router(mock_can);
-    rmd_drc driver(router, mock_steady, expected_gear_ratio, expected_id);
+    rmd_drc_v2 driver(router, mock_steady, expected_gear_ratio, expected_id);
     mock_can.reset();
-    auto expected = prefilled_messages<7>(hal::value(rmd_drc::actuate::speed));
+    auto expected =
+      prefilled_messages<7>(hal::value(rmd_drc_v2::actuate::speed));
     std::array injected_rpm{
       0.0_rpm, 10.0_rpm, 10.0_rpm, 123.0_rpm, 0.0_rpm, 1024.0_rpm,
     };
@@ -205,7 +192,7 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     expect(that % expected[5] == mock_can.spy_send.history<0>(5));
   };
 
-  "rmd_drc::position_control()"_test = []() {
+  "rmd_drc_v2::position_control()"_test = []() {
     // Setup
     rmd_responder mock_can;
     mock::steady_clock mock_steady;
@@ -213,10 +200,10 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     mock_steady.set_uptimes(queue);
     mock_steady.set_frequency(1.0_MHz);
     hal::can_router router(mock_can);
-    rmd_drc driver(router, mock_steady, expected_gear_ratio, expected_id);
+    rmd_drc_v2 driver(router, mock_steady, expected_gear_ratio, expected_id);
     mock_can.reset();
     auto expected =
-      prefilled_messages<6>(hal::value(rmd_drc::actuate::position_2));
+      prefilled_messages<6>(hal::value(rmd_drc_v2::actuate::position_2));
     using payload_t = decltype(expected[0].payload);
 
     // Setup: values verified to be correct
@@ -256,7 +243,7 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     expect(that % expected[5] == mock_can.spy_send.history<0>(5));
   };
 
-  "rmd_drc::feedback_request()"_test = []() {
+  "rmd_drc_v2::feedback_request()"_test = []() {
     // Setup
     rmd_responder mock_can;
     mock::steady_clock mock_steady;
@@ -264,20 +251,20 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     mock_steady.set_uptimes(queue);
     mock_steady.set_frequency(1.0_MHz);
     hal::can_router router(mock_can);
-    rmd_drc driver(router, mock_steady, expected_gear_ratio, expected_id);
+    rmd_drc_v2 driver(router, mock_steady, expected_gear_ratio, expected_id);
     mock_can.reset();
 
     auto expected = prefilled_messages<3>();
 
-    expected[0].payload[0] = hal::value(rmd_drc::read::multi_turns_angle);
+    expected[0].payload[0] = hal::value(rmd_drc_v2::read::multi_turns_angle);
     expected[1].payload[0] =
-      hal::value(rmd_drc::read::status_1_and_error_flags);
-    expected[2].payload[0] = hal::value(rmd_drc::read::status_2);
+      hal::value(rmd_drc_v2::read::status_1_and_error_flags);
+    expected[2].payload[0] = hal::value(rmd_drc_v2::read::status_2);
 
     // Exercise
-    driver.feedback_request(rmd_drc::read::multi_turns_angle);
-    driver.feedback_request(rmd_drc::read::status_1_and_error_flags);
-    driver.feedback_request(rmd_drc::read::status_2);
+    driver.feedback_request(rmd_drc_v2::read::multi_turns_angle);
+    driver.feedback_request(rmd_drc_v2::read::status_1_and_error_flags);
+    driver.feedback_request(rmd_drc_v2::read::status_2);
 
     // Verify
     expect(that % 3 == mock_can.spy_send.call_history().size());
@@ -286,7 +273,7 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     expect(that % expected[2] == mock_can.spy_send.history<0>(2));
   };
 
-  "rmd_drc::system_control()"_test = []() {
+  "rmd_drc_v2::system_control()"_test = []() {
     // Setup
     rmd_responder mock_can;
     mock::steady_clock mock_steady;
@@ -294,21 +281,21 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     mock_steady.set_uptimes(queue);
     mock_steady.set_frequency(1.0_MHz);
     hal::can_router router(mock_can);
-    rmd_drc driver(router, mock_steady, expected_gear_ratio, expected_id);
+    rmd_drc_v2 driver(router, mock_steady, expected_gear_ratio, expected_id);
     mock_can.reset();
 
     auto expected = prefilled_messages<4>();
 
-    expected[0].payload[0] = hal::value(rmd_drc::system::clear_error_flag);
-    expected[1].payload[0] = hal::value(rmd_drc::system::off);
-    expected[2].payload[0] = hal::value(rmd_drc::system::stop);
-    expected[3].payload[0] = hal::value(rmd_drc::system::running);
+    expected[0].payload[0] = hal::value(rmd_drc_v2::system::clear_error_flag);
+    expected[1].payload[0] = hal::value(rmd_drc_v2::system::off);
+    expected[2].payload[0] = hal::value(rmd_drc_v2::system::stop);
+    expected[3].payload[0] = hal::value(rmd_drc_v2::system::running);
 
     // Exercise
-    driver.system_control(rmd_drc::system::clear_error_flag);
-    driver.system_control(rmd_drc::system::off);
-    driver.system_control(rmd_drc::system::stop);
-    driver.system_control(rmd_drc::system::running);
+    driver.system_control(rmd_drc_v2::system::clear_error_flag);
+    driver.system_control(rmd_drc_v2::system::off);
+    driver.system_control(rmd_drc_v2::system::stop);
+    driver.system_control(rmd_drc_v2::system::running);
 
     // Verify
     expect(that % 4 == mock_can.spy_send.call_history().size());
@@ -318,7 +305,7 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     expect(that % expected[3] == mock_can.spy_send.history<0>(3));
   };
 
-  "rmd_drc::operator() update feedback status_2 "_test = []() {
+  "rmd_drc_v2::operator() update feedback status_2 "_test = []() {
     // Setup
     rmd_responder mock_can;
     mock::steady_clock mock_steady;
@@ -326,10 +313,10 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     mock_steady.set_uptimes(queue);
     mock_steady.set_frequency(1.0_MHz);
     hal::can_router router(mock_can);
-    rmd_drc driver(router, mock_steady, expected_gear_ratio, expected_id);
+    rmd_drc_v2 driver(router, mock_steady, expected_gear_ratio, expected_id);
 
     auto expected = prefilled_messages<1>();
-    expected[0].payload[0] = hal::value(rmd_drc::read::status_2);
+    expected[0].payload[0] = hal::value(rmd_drc_v2::read::status_2);
     expected[0].payload[1] = 0x11;  // temperature
     expected[0].payload[2] = 0x22;  // current low byte
     expected[0].payload[3] = 0x33;  // current high byte
@@ -348,7 +335,7 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     expect(that % 0x7766 == driver.feedback().encoder);
   };
 
-  "rmd_drc::feedback().current() "_test = []() {};
+  "rmd_drc_v2::feedback().current() "_test = []() {};
 
   "hal::make_<interface>()"_test = []() {
     // Setup
@@ -358,7 +345,7 @@ boost::ut::suite<"test_rmd_drc"> test_rmd_drc = [] {
     mock_steady.set_uptimes(queue);
     mock_steady.set_frequency(1.0_MHz);
     hal::can_router router(mock_can);
-    rmd_drc driver(router, mock_steady, expected_gear_ratio, expected_id);
+    rmd_drc_v2 driver(router, mock_steady, expected_gear_ratio, expected_id);
 
     // Exercise
     // Verify

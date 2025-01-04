@@ -7,6 +7,8 @@ namespace hal::actuator {
 static constexpr hertz baudrate_hz = 1'000'000;
 static constexpr float dps_per_lsb_speed = 0.01f;
 static constexpr float dps_per_lsb_angle = 1.0f;
+static constexpr hal::u32 first_device_address = 0x140;
+static constexpr hal::u32 last_device_address = first_device_address + 32;
 /// Messages returned from these motor drivers are the same as motor ID plus
 /// this offset.
 static constexpr std::uint32_t response_id_offset = 0x100;
