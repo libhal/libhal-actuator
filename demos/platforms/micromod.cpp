@@ -26,5 +26,14 @@ void initialize_platform(resource_list& p_resources)
   p_resources.status_led = &hal::micromod::v1::led();
   p_resources.clock = &hal::micromod::v1::uptime_clock();
   p_resources.console = &hal::micromod::v1::console(hal::buffer<128>);
-  p_resources.can = &hal::micromod::v1::can();
+  if constexpr (use_can_v1) {
+    p_resources.can = &hal::micromod::v1::can();
+  } else {
+    static std::array<hal::can_message, 4> receive_buffer{};
+    p_resources.can_transceiver =
+      &hal::micromod::v1::can_transceiver(receive_buffer);
+    p_resources.can_bus_manager = &hal::micromod::v1::can_bus_manager();
+    p_resources.can_identifier_filter =
+      &hal::micromod::v1::can_identifier_filter0();
+  }
 }
