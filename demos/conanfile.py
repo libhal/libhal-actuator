@@ -19,6 +19,5 @@ class demos(ConanFile):
     python_requires_extend = "libhal-bootstrap.demo"
 
     def requirements(self):
-        bootstrap = self.python_requires["libhal-bootstrap"]
-        bootstrap.module.add_demo_requirements(self)
-        self.requires("libhal-actuator/[^1.1.0 || latest]")
+        self.requires("libhal-util/[^5.4.0]")
+        self.requires("libhal-actuator/[1.1.0 || latest]")
