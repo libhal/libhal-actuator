@@ -54,6 +54,7 @@ public:
    * @brief Create a rc_servo object.
    *
    * @param p_pwm - pwm signal connected to the RC servo
+   * @param p_settings - RC servo settings
    */
   rc_servo(hal::pwm& p_pwm, settings const& p_settings);
 

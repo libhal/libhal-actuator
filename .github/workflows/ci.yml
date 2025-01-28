@@ -22,7 +22,7 @@ on:
       - main
   schedule:
     - cron: "0 12 * * 0"
-# fire again! 5
+# fire again! 6
 jobs:
   ci:
     uses: libhal/ci/.github/workflows/library_check.yml@docs
