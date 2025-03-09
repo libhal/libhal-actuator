@@ -53,9 +53,10 @@ void initialize_platform(resource_list& p_resources)
     static hal::stm32f1::can driver({}, hal::stm32f1::can_pins::pb9_pb8);
     p_resources.can = &driver;
   } else {
+    using namespace std::chrono_literals;
     static std::array<hal::can_message, 4> receive_buffer{};
     static hal::stm32f1::can_peripheral_manager can(
-      100_kHz, hal::stm32f1::can_pins::pb9_pb8);
+      100_kHz, counter, 1ms, hal::stm32f1::can_pins::pb9_pb8);
     static auto can_transceiver = can.acquire_transceiver(receive_buffer);
     p_resources.can_transceiver = &can_transceiver;
     static auto can_bus_manager = can.acquire_bus_manager();
