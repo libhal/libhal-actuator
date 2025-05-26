@@ -26,7 +26,7 @@ class libhal_actuator_conan(ConanFile):
     topics = ("actuator", "libhal", "driver")
     settings = "compiler", "build_type", "os", "arch"
 
-    python_requires = "libhal-bootstrap/[^4.1.1]"
+    python_requires = "libhal-bootstrap/[^4.2.1]"
     python_requires_extend = "libhal-bootstrap.library"
 
     def requirements(self):
