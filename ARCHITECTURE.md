@@ -116,8 +116,8 @@ bootstrap.module.add_demo_requirements(self)
 ```
 
 Must be invoked in order to add the appropriate platform libraries to the
-`ConanFile` class. These platform libraries are usually `libhal-lpc40`,
-`libhal-stm32f1` and `libhal-micromod`. Note that bootstrap must be updated to
+`ConanFile` class. These platform libraries are usually `libhal-arm-mcu`,
+`libhal-linux` and `libhal-micromod`. Note that bootstrap must be updated to
 support additional platforms. If you attempt to use a profile with a platform
 name outside of what is supported by `libhal-bootstrap` then this API does
 nothing except include `libhal-util`.
