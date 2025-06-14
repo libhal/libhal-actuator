@@ -20,11 +20,11 @@ libhal_test_and_make_library(
 
   SOURCES
   src/rc_servo.cpp
-  src/smart_servo/rmd/drc_adaptors.cpp
-  src/smart_servo/rmd/drc.cpp
+  # src/smart_servo/rmd/drc_adaptors.cpp
+  # src/smart_servo/rmd/drc.cpp
   src/smart_servo/rmd/drc_v2.cpp
-  src/smart_servo/rmd/mc_x_adaptors.cpp
-  src/smart_servo/rmd/mc_x.cpp
+  # src/smart_servo/rmd/mc_x_adaptors.cpp
+  # src/smart_servo/rmd/mc_x.cpp
   src/smart_servo/rmd/mc_x_v2.cpp
 
   TEST_SOURCES
@@ -36,10 +36,8 @@ libhal_test_and_make_library(
   tests/smart_servo/rmd/drc_adaptors.test.cpp
 
   PACKAGES
-  libhal-canrouter
   libhal-mock
 
   LINK_LIBRARIES
-  libhal::canrouter
   libhal::mock
 )
