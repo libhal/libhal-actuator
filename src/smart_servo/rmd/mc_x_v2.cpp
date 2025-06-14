@@ -12,10 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <libhal-actuator/smart_servo/rmd/mc_x_v2.hpp>
-
 #include <cstdint>
 
+#include <libhal-actuator/smart_servo/rmd/mc_x_v2.hpp>
 #include <libhal-util/can.hpp>
 #include <libhal-util/enum.hpp>
 #include <libhal-util/map.hpp>
@@ -361,18 +360,6 @@ rmd_mc_x_v2::current_sensor rmd_mc_x_v2::acquire_current_sensor()
 {
   return { *this };
 }
-
-// Global constants for velocity limits and thresholds
-namespace {
-constexpr auto movement_threshold = 5.0_rpm;
-// Hardware limits based on 32-bit signed values and conversion factors
-constexpr auto max_hardware_velocity =
-  static_cast<float>(std::numeric_limits<std::int32_t>::max()) *
-  dps_per_lsb_speed;
-constexpr auto max_position_degrees =
-  static_cast<float>(std::numeric_limits<std::int32_t>::max()) *
-  0.01f;  // 0.01°/LSB for position
-}  // namespace
 
 // Constructor implementations (add to .cpp file)
 rmd_mc_x_v2::velocity_motor::velocity_motor(rmd_mc_x_v2& p_drc)

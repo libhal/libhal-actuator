@@ -167,7 +167,6 @@ public:
     range_t driver_velocity_range() override;
 
     rmd_mc_x_v2* m_drc = nullptr;
-    hal::rpm m_max_speed;
   };
   /**
    * @brief Servo interface adaptor for DRC
