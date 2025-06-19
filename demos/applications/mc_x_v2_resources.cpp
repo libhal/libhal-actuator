@@ -17,6 +17,7 @@
 #include <libhal-util/serial.hpp>
 #include <libhal-util/steady_clock.hpp>
 
+#include <libhal/servo.hpp>
 #include <libhal/units.hpp>
 #include <resource_list.hpp>
 
@@ -47,10 +48,12 @@ void application(resource_list& p_map)
       hal::actuator::rmd_mc_x_v2 mc_x(
         can_transceiver, can_identifier_filter, clock, 36.0f, address);
 
-      auto motor = mc_x.acquire_motor(20.0_rpm);
-      auto servo = mc_x.acquire_servo(20.0_rpm);
+      auto motor = mc_x.acquire_velocity_motor();
+      auto servo = mc_x.acquire_velocity_servo();
       auto temperature_sensor = mc_x.acquire_temperature_sensor();
       auto rotation_sensor = mc_x.acquire_rotation_sensor();
+
+      hal::v5::basic_servo* basic_servo = &servo;
 
       auto print_feedback =
         [&console, &temperature_sensor, &rotation_sensor]() {
@@ -66,35 +69,37 @@ void application(resource_list& p_map)
       hal::delay(clock, 500ms);
 
       while (true) {
-        motor.power(0.5f);
+        hal::delay(clock, 1000ms);
+        motor.drive(10.0_rpm);
         hal::delay(clock, 5000ms);
         print_feedback();
 
-        motor.power(-0.5f);
+        motor.drive(-10.0_rpm);
         hal::delay(clock, 5000ms);
         print_feedback();
 
-        servo.position(0.0_deg);
+        servo.configure({ .velocity = 10.0_rpm });
+        basic_servo->position(0.0_deg);
         hal::delay(clock, 5000ms);
         print_feedback();
 
-        servo.position(-45.0_deg);
+        basic_servo->position(-45.0_deg);
         hal::delay(clock, 5000ms);
         print_feedback();
 
-        servo.position(90.0_deg);
+        basic_servo->position(90.0_deg);
         hal::delay(clock, 5000ms);
         print_feedback();
 
-        servo.position(180.0_deg);
+        basic_servo->position(180.0_deg);
         hal::delay(clock, 5000ms);
         print_feedback();
 
-        servo.position(-360.0_deg);
+        basic_servo->position(-360.0_deg);
         hal::delay(clock, 5000ms);
         print_feedback();
 
-        servo.position(0.0_deg);
+        basic_servo->position(0.0_deg);
         hal::delay(clock, 5000ms);
         print_feedback();
       }
