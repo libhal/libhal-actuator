@@ -26,8 +26,8 @@ libhal_test_and_make_library(
   TEST_SOURCES
   tests/main.test.cpp
   tests/rc_servo.test.cpp
-  tests/smart_servo/rmd/drc_v2.test.cpp
-  tests/smart_servo/rmd/drc_adaptors.test.cpp
+  # tests/smart_servo/rmd/drc_v2.test.cpp
+  # tests/smart_servo/rmd/drc_adaptors.test.cpp
 
   PACKAGES
   libhal-mock

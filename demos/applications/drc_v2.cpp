@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <exception>
+
 #include <libhal-actuator/smart_servo/rmd/drc_v2.hpp>
 #include <libhal-util/can.hpp>
 #include <libhal-util/serial.hpp>
