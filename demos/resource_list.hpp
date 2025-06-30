@@ -19,7 +19,6 @@
 #include <libhal/can.hpp>
 #include <libhal/functional.hpp>
 #include <libhal/output_pin.hpp>
-#include <libhal/pointers.hpp>
 #include <libhal/pwm.hpp>
 #include <libhal/serial.hpp>
 #include <libhal/steady_clock.hpp>
@@ -27,22 +26,15 @@
 struct resource_list
 {
   hal::callback<void()> reset;
-  std::optional<hal::serial*> console{};
-  std::optional<hal::steady_clock*> clock{};
-  std::optional<hal::output_pin*> status_led{};
-  std::optional<hal::can*> can{};
-  std::optional<hal::can_transceiver*> can_transceiver{};
-  std::optional<hal::can_bus_manager*> can_bus_manager{};
-  std::optional<hal::can_identifier_filter*> can_identifier_filter{};
-  std::optional<hal::pwm*> pwm{};
+  std::optional<hal::serial*> console;
+  std::optional<hal::steady_clock*> clock;
+  std::optional<hal::output_pin*> status_led;
+  std::optional<hal::can*> can;
+  std::optional<hal::can_transceiver*> can_transceiver;
+  std::optional<hal::can_bus_manager*> can_bus_manager;
+  std::optional<hal::can_identifier_filter*> can_identifier_filter;
+  std::optional<hal::pwm*> pwm;
 };
-
-namespace resource {
-hal::v5::strong_ptr<hal::can_transceiver> can_transceiver();
-hal::v5::strong_ptr<hal::v5::can_bus_manager> can_bus_manager();
-hal::v5::strong_ptr<hal::v5::serial> serial_console(hal::usize p_buffer_size);
-hal::v5::strong_ptr<hal::steady_clock> steady_clock();
-}  // namespace resource
 
 // Application function is implemented by one of the .cpp files.
 void initialize_platform(resource_list& p_resources);

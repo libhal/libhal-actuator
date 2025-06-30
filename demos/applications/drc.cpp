@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <libhal-actuator/smart_servo/rmd/drc_v2.hpp>
+#include <libhal-actuator/smart_servo/rmd/drc.hpp>
 #include <libhal-util/can.hpp>
 #include <libhal-util/serial.hpp>
 #include <libhal-util/steady_clock.hpp>
@@ -26,13 +26,11 @@ void application(resource_list& p_resources)
 
   auto& clock = *p_resources.clock.value();
   auto& console = *p_resources.console.value();
-  auto& can_transceiver = *p_resources.can_transceiver.value();
-  auto& can_bus_manager = *p_resources.can_bus_manager.value();
-  auto& can_identifier_filter = *p_resources.can_identifier_filter.value();
+  auto& can = *p_resources.can.value();
 
   // Needs to be set to this baud rate to work with the default firmware CAN
   // baud rate.
-  can_bus_manager.baud_rate(1.0_MHz);
+  can.configure({ .baud_rate = 1.0_MHz });
 
   hal::print(console, "RMD DRC Smart Servo Application Starting...\n\n");
 
@@ -42,15 +40,14 @@ void application(resource_list& p_resources)
   while (true) {
     try {
       auto const address = starting_device_address + address_offset;
-      hal::actuator::rmd_drc_v2 drc(
-        can_transceiver, can_identifier_filter, clock, 6.0f, address);
+      hal::can_router router(can);
+      hal::actuator::rmd_drc drc(router, clock, 6.0f, address);
 
       auto print_feedback = [&drc, &console]() {
-        drc.feedback_request(hal::actuator::rmd_drc_v2::read::status_2);
+        drc.feedback_request(hal::actuator::rmd_drc::read::status_2);
+        drc.feedback_request(hal::actuator::rmd_drc::read::multi_turns_angle);
         drc.feedback_request(
-          hal::actuator::rmd_drc_v2::read::multi_turns_angle);
-        drc.feedback_request(
-          hal::actuator::rmd_drc_v2::read::status_1_and_error_flags);
+          hal::actuator::rmd_drc::read::status_1_and_error_flags);
 
         hal::print<2048>(
           console,
@@ -129,7 +126,7 @@ void application(resource_list& p_resources)
         "respond. Moving to the next device address in the list.\n");
     } catch (hal::resource_unavailable_try_again const& p_error) {
       hal::print(console, "hal::resource_unavailable_try_again\n");
-      if (p_error.instance() == &can_transceiver) {
+      if (p_error.instance() == &can) {
         hal::print(
           console,
           "\n"

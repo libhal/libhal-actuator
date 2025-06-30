@@ -22,5 +22,3 @@ class demos(ConanFile):
         bootstrap = self.python_requires["libhal-bootstrap"]
         bootstrap.module.add_demo_requirements(self)
         self.requires("libhal-actuator/[1.1.1 || latest]")
-        # Used by libhal-mac to use canusb
-        self.requires("libhal-expander/[1.2.0 || latest]")

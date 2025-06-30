@@ -12,16 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <libhal-actuator/smart_servo/rmd/mc_x.hpp>
-
-#include <libhal-mock/can.hpp>
-#include <libhal-mock/steady_clock.hpp>
-#include <libhal-util/enum.hpp>
+#include <libhal-actuator/smart_servo/rmd/mc_x_v2.hpp>
 
 #include <boost/ut.hpp>
 
 namespace hal::actuator {
-boost::ut::suite test_rmd_mc_x = [] {
+boost::ut::suite<"test_rmd_mc_x"> test_rmd_mc_x_v2 = [] {
   using namespace boost::ut;
   using namespace std::literals;
   using namespace hal::literals;
