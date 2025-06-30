@@ -16,7 +16,6 @@
 
 #include <cstdint>
 
-#include <libhal-canrouter/can_router.hpp>
 #include <libhal-util/can.hpp>
 #include <libhal/can.hpp>
 #include <libhal/current_sensor.hpp>
@@ -89,19 +88,19 @@ public:
     /// Core temperature of the motor (1C/LSB)
     std::int8_t raw_motor_temperature{ 0 };
 
-    hal::ampere current() const noexcept;
-    hal::rpm speed() const noexcept;
-    hal::volts volts() const noexcept;
-    hal::celsius temperature() const noexcept;
-    hal::degrees angle() const noexcept;
-    bool motor_stall() const noexcept;
-    bool low_pressure() const noexcept;
-    bool over_voltage() const noexcept;
-    bool over_current() const noexcept;
-    bool power_overrun() const noexcept;
-    bool speeding() const noexcept;
-    bool over_temperature() const noexcept;
-    bool encoder_calibration_error() const noexcept;
+    [[nodiscard]] hal::ampere current() const noexcept;
+    [[nodiscard]] hal::rpm speed() const noexcept;
+    [[nodiscard]] hal::volts volts() const noexcept;
+    [[nodiscard]] hal::celsius temperature() const noexcept;
+    [[nodiscard]] hal::degrees angle() const noexcept;
+    [[nodiscard]] bool motor_stall() const noexcept;
+    [[nodiscard]] bool low_pressure() const noexcept;
+    [[nodiscard]] bool over_voltage() const noexcept;
+    [[nodiscard]] bool over_current() const noexcept;
+    [[nodiscard]] bool power_overrun() const noexcept;
+    [[nodiscard]] bool speeding() const noexcept;
+    [[nodiscard]] bool over_temperature() const noexcept;
+    [[nodiscard]] bool encoder_calibration_error() const noexcept;
   };
 
   /**
@@ -143,6 +142,60 @@ public:
     friend class rmd_mc_x_v2;
     rmd_mc_x_v2* m_mc_x = nullptr;
     hal::rpm m_max_speed;
+  };
+
+  /**
+   * @brief Motor interface adaptor for DRC
+   *
+   */
+  class velocity_motor : public hal::v5::velocity_motor
+  {
+  public:
+    velocity_motor(velocity_motor const&) = delete;
+    velocity_motor& operator=(velocity_motor const&) = delete;
+    velocity_motor(velocity_motor&&) = default;
+    velocity_motor& operator=(velocity_motor&&) = default;
+    ~velocity_motor() override = default;
+
+  private:
+    friend class rmd_mc_x_v2;
+    velocity_motor(rmd_mc_x_v2& p_drc);
+
+    void driver_enable(bool p_state) override;
+    void driver_drive(rpm p_velocity) override;
+    status_t driver_status() override;
+    range_t driver_velocity_range() override;
+
+    rmd_mc_x_v2* m_drc = nullptr;
+  };
+  /**
+   * @brief Servo interface adaptor for DRC
+   *
+   */
+  class velocity_servo : public hal::v5::velocity_servo
+  {
+  public:
+    velocity_servo(velocity_servo const&) = delete;
+    velocity_servo& operator=(velocity_servo const&) = delete;
+    velocity_servo(velocity_servo&&) = default;
+    velocity_servo& operator=(velocity_servo&&) = default;
+    ~velocity_servo() override = default;
+
+  private:
+    friend class rmd_mc_x_v2;
+    velocity_servo(rmd_mc_x_v2& p_drc);
+
+    void driver_enable(bool p_state) override;
+    void driver_position(degrees p_target_position) override;
+    position_range_t driver_position_range() override;
+    degrees driver_get_position() override;
+    bool driver_is_moving() override;
+    void driver_configure(settings const& p_settings) override;
+    status_t driver_status() override;
+    range_t driver_velocity_range() override;
+
+    rmd_mc_x_v2* m_drc = nullptr;
+    rpm m_current_velocity = 0;
   };
 
   /**
@@ -229,6 +282,23 @@ public:
   servo acquire_servo(hal::rpm p_max_speed);
 
   /**
+   * @brief Create a hal::v5::velocity_motor implementation from the drc driver
+   *
+   * @return rmd_mc_x_v2::velocity_motor - motor implementation based on the drc
+   * driver. This object's lifetime must exceed the lifetime of the returned
+   * object.
+   */
+  velocity_motor acquire_velocity_motor();
+  /**
+   * @brief Create a hal::v5::velocity_servo implementation from the drc driver
+   *
+   * @return rmd_mc_x_v2::velocity_servo - servo implementation based on the drc
+   * driver. This object's lifetime must exceed the lifetime of the returned
+   * object.
+   */
+  velocity_servo acquire_velocity_servo();
+
+  /**
    * @brief Create a hal::temperature_sensor driver using the MC-X driver
    *
    * @return temperature - temperature sensor implementation based on
@@ -255,7 +325,7 @@ public:
    * @throws hal::timed_out - if a response is not returned within the max
    * response time set at creation.
    */
-  feedback_t const& feedback() const;
+  [[nodiscard]] feedback_t const& feedback() const;
 
   /**
    * @brief Request feedback from the motor

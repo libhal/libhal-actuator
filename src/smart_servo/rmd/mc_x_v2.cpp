@@ -12,23 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <libhal-actuator/smart_servo/rmd/mc_x_v2.hpp>
-
 #include <cstdint>
 
+#include <libhal-actuator/smart_servo/rmd/mc_x_v2.hpp>
 #include <libhal-util/can.hpp>
 #include <libhal-util/enum.hpp>
 #include <libhal-util/map.hpp>
 #include <libhal-util/steady_clock.hpp>
 #include <libhal/can.hpp>
 #include <libhal/error.hpp>
+#include <libhal/units.hpp>
 
 #include "common.hpp"
 #include "mc_x_constants.hpp"
 
 namespace hal::actuator {
 namespace {
-inline std::int32_t rpm_to_mc_x_speed(rpm p_rpm, float p_dps_per_lsb)
+inline std::int32_t rpm_to_mc_x_speed(hal::rpm p_rpm, float p_dps_per_lsb)
 {
   static constexpr float dps_per_rpm = (1.0f / 1.0_deg_per_sec);
   float const dps_float = (p_rpm * dps_per_rpm) / p_dps_per_lsb;
@@ -317,13 +317,13 @@ void rmd_mc_x_v2::motor::driver_power(float p_power)
 
 hal::celsius rmd_mc_x_v2::temperature::driver_read()
 {
-  m_mc_x->feedback_request(read::multi_turns_angle);
+  m_mc_x->feedback_request(read::status_2);
   return m_mc_x->feedback().temperature();
 }
 
 hal::rotation_sensor::read_t rmd_mc_x_v2::rotation::driver_read()
 {
-  m_mc_x->feedback_request(read::status_2);
+  m_mc_x->feedback_request(read::multi_turns_angle);
   return { .angle = m_mc_x->feedback().angle() };
 }
 
@@ -361,4 +361,132 @@ rmd_mc_x_v2::current_sensor rmd_mc_x_v2::acquire_current_sensor()
 {
   return { *this };
 }
+
+// Constructor implementations (add to .cpp file)
+rmd_mc_x_v2::velocity_motor::velocity_motor(rmd_mc_x_v2& p_drc)
+  : m_drc(&p_drc)
+{
+}
+
+rmd_mc_x_v2::velocity_servo::velocity_servo(rmd_mc_x_v2& p_drc)
+  : m_drc(&p_drc)
+{
+}
+
+// velocity_motor implementations
+void rmd_mc_x_v2::velocity_motor::driver_enable(bool p_state)
+{
+  using namespace hal::literals;
+
+  if (p_state) {
+    // Motor is enabled by sending any drive command
+    // For now, just stop the motor to enable it
+    m_drc->velocity_control(0.0_rpm);
+  } else {
+    // Disable motor using system off command
+    m_drc->system_control(system::off);
+  }
+}
+
+void rmd_mc_x_v2::velocity_motor::driver_drive(rpm p_velocity)
+{
+  m_drc->velocity_control(p_velocity);
+}
+
+hal::v5::velocity_motor::status_t rmd_mc_x_v2::velocity_motor::driver_status()
+{
+  // Request current status
+  m_drc->feedback_request(read::status_2);
+  auto const& feedback = m_drc->feedback();
+
+  status_t status{};
+  status.velocity = feedback.speed();
+
+  return status;
+}
+
+hal::v5::velocity_motor::range_t
+rmd_mc_x_v2::velocity_motor::driver_velocity_range()
+{
+  return { .max = max_hardware_velocity };
+}
+
+// velocity_servo implementations
+void rmd_mc_x_v2::velocity_servo::driver_enable(bool p_state)
+{
+  if (p_state) {
+    // Servo is enabled by sending any position command
+    // Get current position and command it to stay there
+    m_drc->feedback_request(read::multi_turns_angle);
+    // auto const current_position = m_drc->feedback().angle();
+    // m_drc->position_control(current_position, m_current_velocity);
+  } else {
+    // Disable servo using system off command
+    m_drc->system_control(system::off);
+  }
+}
+
+void rmd_mc_x_v2::velocity_servo::driver_position(degrees p_target_position)
+{
+  m_drc->position_control(p_target_position, m_current_velocity);
+}
+
+hal::v5::velocity_servo::position_range_t
+rmd_mc_x_v2::velocity_servo::driver_position_range()
+{
+  // RMD motors support multi-turn operation limited by 32-bit signed position
+  // data
+  return { .min = -max_position_degrees * 1.0_deg,
+           .max = max_position_degrees * 1.0_deg };
+}
+
+degrees rmd_mc_x_v2::velocity_servo::driver_get_position()
+{
+  m_drc->feedback_request(read::multi_turns_angle);
+  return m_drc->feedback().angle();
+}
+
+bool rmd_mc_x_v2::velocity_servo::driver_is_moving()
+{
+  m_drc->feedback_request(read::status_2);
+  auto const& feedback = m_drc->feedback();
+
+  // Consider the servo moving if speed is above a small threshold
+  return std::abs(feedback.speed()) > movement_threshold;
+}
+
+void rmd_mc_x_v2::velocity_servo::driver_configure(
+  hal::v5::velocity_servo::settings const& p_settings)
+{
+  m_current_velocity = p_settings.velocity;
+}
+
+hal::v5::velocity_servo::status_t rmd_mc_x_v2::velocity_servo::driver_status()
+{
+  m_drc->feedback_request(read::status_2);
+  auto const& feedback = m_drc->feedback();
+
+  status_t status{};
+  status.velocity = feedback.speed();
+
+  return status;
+}
+
+hal::v5::velocity_servo::range_t
+rmd_mc_x_v2::velocity_servo::driver_velocity_range()
+{
+  return { .max = max_hardware_velocity };
+}
+
+// Object acquisition functions (add to .cpp file)
+rmd_mc_x_v2::velocity_motor rmd_mc_x_v2::acquire_velocity_motor()
+{
+  return { *this };
+}
+
+rmd_mc_x_v2::velocity_servo rmd_mc_x_v2::acquire_velocity_servo()
+{
+  return { *this };
+}
+
 }  // namespace hal::actuator

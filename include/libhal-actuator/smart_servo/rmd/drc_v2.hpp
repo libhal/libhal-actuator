@@ -118,11 +118,11 @@ public:
     /// 8-bit value containing error flag information
     std::uint8_t raw_error_state{ 0 };
 
-    hal::ampere current() const noexcept;
-    hal::rpm speed() const noexcept;
-    hal::volts volts() const noexcept;
-    hal::celsius temperature() const noexcept;
-    hal::degrees angle() const noexcept;
+    [[nodiscard]] hal::ampere current() const noexcept;
+    [[nodiscard]] hal::rpm speed() const noexcept;
+    [[nodiscard]] hal::volts volts() const noexcept;
+    [[nodiscard]] hal::celsius temperature() const noexcept;
+    [[nodiscard]] hal::degrees angle() const noexcept;
 
     /**
      * @brief Return if the motor has detected an over voltage event
@@ -133,7 +133,7 @@ public:
      * @return true - over voltage protection tripped
      * @return false - over voltage protection has not tripped
      */
-    bool over_voltage_protection_tripped() const noexcept;
+    [[nodiscard]] bool over_voltage_protection_tripped() const noexcept;
 
     /**
      * @brief Return if the motor has detected an over temperature event
@@ -144,7 +144,7 @@ public:
      * @return true - over temperature protection tripped
      * @return false - over temperature protection has not tripped
      */
-    bool over_temperature_protection_tripped() const noexcept;
+    [[nodiscard]] bool over_temperature_protection_tripped() const noexcept;
   };
 
   /**
@@ -158,7 +158,7 @@ public:
     rotation_sensor& operator=(rotation_sensor const&) = delete;
     rotation_sensor(rotation_sensor&&) = default;
     rotation_sensor& operator=(rotation_sensor&&) = default;
-    ~rotation_sensor() = default;
+    ~rotation_sensor() override = default;
 
   private:
     friend class rmd_drc_v2;
@@ -178,7 +178,7 @@ public:
     temperature_sensor& operator=(temperature_sensor const&) = delete;
     temperature_sensor(temperature_sensor&&) = default;
     temperature_sensor& operator=(temperature_sensor&&) = default;
-    ~temperature_sensor() = default;
+    ~temperature_sensor() override = default;
 
   private:
     friend class rmd_drc_v2;
@@ -198,7 +198,7 @@ public:
     motor& operator=(motor const&) = delete;
     motor(motor&&) = default;
     motor& operator=(motor&&) = default;
-    ~motor() = default;
+    ~motor() override = default;
 
   private:
     friend class rmd_drc_v2;
@@ -208,6 +208,7 @@ public:
     rmd_drc_v2* m_drc = nullptr;
     hal::rpm m_max_speed;
   };
+
   /**
    * @brief Servo interface adaptor for DRC
    *
@@ -219,7 +220,7 @@ public:
     servo& operator=(servo const&) = delete;
     servo(servo&&) = default;
     servo& operator=(servo&&) = default;
-    ~servo() = default;
+    ~servo() override = default;
 
   private:
     friend class rmd_drc_v2;
@@ -240,7 +241,7 @@ public:
     angular_velocity_sensor& operator=(angular_velocity_sensor const&) = delete;
     angular_velocity_sensor(angular_velocity_sensor&&) = default;
     angular_velocity_sensor& operator=(angular_velocity_sensor&&) = default;
-    ~angular_velocity_sensor() = default;
+    ~angular_velocity_sensor() override = default;
 
   private:
     friend class rmd_drc_v2;
@@ -302,8 +303,8 @@ public:
    *
    * @param p_max_speed - maximum speed of the motor represented by +1.0 and
    * -1.0
-   * @return drc_motor - motor implementation based on the drc driver. This
-   * object's lifetime must exceed the lifetime of the returned object.
+   * @return rmd_drc_v2::motor - motor implementation based on the drc driver.
+   * This object's lifetime must exceed the lifetime of the returned object.
    */
   motor acquire_motor(hal::rpm p_max_speed);
 
@@ -370,7 +371,7 @@ public:
    *
    * @return feedback_t const&
    */
-  feedback_t const& feedback() const;
+  [[nodiscard]] feedback_t const& feedback() const;
 
 private:
   void handle_message(can_message const& p_message);
