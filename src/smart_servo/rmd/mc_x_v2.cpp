@@ -21,13 +21,14 @@
 #include <libhal-util/steady_clock.hpp>
 #include <libhal/can.hpp>
 #include <libhal/error.hpp>
+#include <libhal/units.hpp>
 
 #include "common.hpp"
 #include "mc_x_constants.hpp"
 
 namespace hal::actuator {
 namespace {
-inline std::int32_t rpm_to_mc_x_speed(rpm p_rpm, float p_dps_per_lsb)
+inline std::int32_t rpm_to_mc_x_speed(hal::rpm p_rpm, float p_dps_per_lsb)
 {
   static constexpr float dps_per_rpm = (1.0f / 1.0_deg_per_sec);
   float const dps_float = (p_rpm * dps_per_rpm) / p_dps_per_lsb;
@@ -316,13 +317,13 @@ void rmd_mc_x_v2::motor::driver_power(float p_power)
 
 hal::celsius rmd_mc_x_v2::temperature::driver_read()
 {
-  m_mc_x->feedback_request(read::multi_turns_angle);
+  m_mc_x->feedback_request(read::status_2);
   return m_mc_x->feedback().temperature();
 }
 
 hal::rotation_sensor::read_t rmd_mc_x_v2::rotation::driver_read()
 {
-  m_mc_x->feedback_request(read::status_2);
+  m_mc_x->feedback_request(read::multi_turns_angle);
   return { .angle = m_mc_x->feedback().angle() };
 }
 
@@ -417,8 +418,8 @@ void rmd_mc_x_v2::velocity_servo::driver_enable(bool p_state)
     // Servo is enabled by sending any position command
     // Get current position and command it to stay there
     m_drc->feedback_request(read::multi_turns_angle);
-    auto const current_position = m_drc->feedback().angle();
-    m_drc->position_control(current_position, m_current_velocity);
+    // auto const current_position = m_drc->feedback().angle();
+    // m_drc->position_control(current_position, m_current_velocity);
   } else {
     // Disable servo using system off command
     m_drc->system_control(system::off);

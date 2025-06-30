@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <libhal-actuator/smart_servo/rmd/drc.hpp>
+#include <libhal-actuator/smart_servo/rmd/drc_v2.hpp>
 
 #include <libhal-mock/can.hpp>
 #include <libhal-mock/steady_clock.hpp>

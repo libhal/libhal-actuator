@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <exception>
+
 #include <libhal-actuator/smart_servo/rmd/mc_x_v2.hpp>
 #include <libhal-util/can.hpp>
 #include <libhal-util/serial.hpp>
 #include <libhal-util/steady_clock.hpp>
-
 #include <libhal/servo.hpp>
 #include <libhal/units.hpp>
+
 #include <resource_list.hpp>
 
 void application(resource_list& p_map)
