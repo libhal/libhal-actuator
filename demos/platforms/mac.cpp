@@ -22,7 +22,9 @@
 
 #include <libhal-expander/canusb.hpp>
 #include <libhal-mac/serial.hpp>
+#include <libhal/current_sensor.hpp>
 #include <libhal/error.hpp>
+#include <libhal/i2c.hpp>
 #include <libhal/pointers.hpp>
 #include <libhal/serial.hpp>
 #include <libhal/steady_clock.hpp>
@@ -214,3 +216,77 @@ hal::v5::strong_ptr<hal::steady_clock> steady_clock()
     std::pmr::new_delete_resource());
 }
 }  // namespace resource
+
+hal::future<hal::celsius> get_temp(hal::v5::async_context& p_ctx,
+                                   hal::v5::strong_ptr<hal::i2c> p_i2c);
+
+void foo()
+{
+  auto future_1 = get_temp(ctx1, i2c1);
+  auto future_2 = get_temp(ctx2, i2c2);
+
+  while (true) {
+    if (future_1.done() and future_2.done()) {
+      break;
+    }
+    if (not future_1.done()) {
+      future_1.resume();
+    }
+    if (not future_2.done()) {
+      future_2.resume();
+    }
+  }
+
+  auto result_1 = future_1.sync_wait();
+  auto result_2 = future_1.sync_wait();
+}
+
+void bar()
+{
+  auto result_1 = get_temp(ctx1, i2c1).sync_wait();
+  auto result_2 = get_temp(ctx2, i2c2).sync_wait();
+}
+
+std::array<hal::byte, 1024UZ * 2> coroutine_stack{};
+
+void full()
+{
+  // Single use allocator, never deallocates
+  std::pmr::monotonic_buffer_resource coroutine_resource(
+    coroutine_stack.data(),
+    coroutine_stack.size(),
+    std::pmr::null_memory_resource());
+
+  // Create two async_context and give them each half of the memory
+  hal::v5::async_runtime<2> async_manager(
+    coroutine_resource, coroutine_stack.size() / 2, [](auto const&...) {
+      // fill out later
+    });
+  auto ctx0 = async_manager.lease(0);
+  auto ctx1 = async_manager.lease(1);
+
+  auto result_0 = get_temp(ctx0, i2c0).sync_wait();
+  auto result_1 = get_temp(ctx1, i2c1).sync_wait();
+}
+
+thread_local std::array<hal::byte, 1024UZ * 2> coroutine_stack_2{};
+std::pmr::monotonic_buffer_resource coroutine_resource2(
+  coroutine_stack_2.data(),
+  coroutine_stack_2.size(),
+  std::pmr::null_memory_resource());
+
+void global_coro()
+{
+  auto manager =
+
+    // Overload that accepts a memory resource
+    hal::set_global_coroutine_allocator(
+      get_static_thread_local_allocator<1024>());
+
+  // Wrap a `hal::strong_pointer<I>` where `I` is an interface
+  // and provide a wrapper that performs all operations synchonously
+  // With C++ reflection, making such generic wrapper would be possible
+  auto led = hal::sync(get_led_pin());
+  led.level(true);
+  led.level(false);
+}
