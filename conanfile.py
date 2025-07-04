@@ -36,3 +36,6 @@ class libhal_actuator_conan(ConanFile):
     def package_info(self):
         self.cpp_info.libs = ["libhal-actuator"]
         self.cpp_info.set_property("cmake_target_name", "libhal::actuator")
+
+    def package_id(self):
+        self.info.python_requires.major_mode()
