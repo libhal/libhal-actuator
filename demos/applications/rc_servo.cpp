@@ -18,16 +18,16 @@
 
 #include <resource_list.hpp>
 
-void application(resource_list& p_map)
+void application()
 {
   using namespace std::chrono_literals;
   using namespace hal::literals;
 
-  auto& clock = *p_map.clock.value();
-  auto& console = *p_map.console.value();
-  auto& pwm = *p_map.pwm.value();
+  auto clock = resources::clock();
+  auto console = resources::console();
+  auto pwm = resources::pwm();
 
-  hal::print(console, "RC Servo Application Starting...\n\n");
+  hal::print(*console, "RC Servo Application Starting...\n\n");
 
   hal::actuator::rc_servo::settings rc_servo_settings{
     .frequency = 50,
@@ -39,35 +39,35 @@ void application(resource_list& p_map)
     .min_microseconds = 1000,
     .max_microseconds = 2000,
   };
-  hal::actuator::rc_servo servo(pwm, rc_servo_settings);
+  hal::actuator::rc_servo servo(*pwm, rc_servo_settings);
 
-  hal::print(console, "In 5 seconds...\n");
-  hal::delay(clock, 5000ms);
+  hal::print(*console, "In 5 seconds...\n");
+  hal::delay(*clock, 5000ms);
 
   // Oscillate from the servo horn back and forth
   while (true) {
-    hal::print(console, "0 deg\n");
+    hal::print(*console, "0 deg\n");
     servo.position(0.0_deg);
-    hal::delay(clock, 5000ms);
+    hal::delay(*clock, 5000ms);
 
-    hal::print(console, "45 deg\n");
+    hal::print(*console, "45 deg\n");
     servo.position(45.0_deg);
-    hal::delay(clock, 5000ms);
+    hal::delay(*clock, 5000ms);
 
-    hal::print(console, "90 deg\n");
+    hal::print(*console, "90 deg\n");
     servo.position(90.0_deg);
-    hal::delay(clock, 5000ms);
+    hal::delay(*clock, 5000ms);
 
-    hal::print(console, "45 deg\n");
+    hal::print(*console, "45 deg\n");
     servo.position(45.0_deg);
-    hal::delay(clock, 5000ms);
+    hal::delay(*clock, 5000ms);
 
-    hal::print(console, "0 deg\n");
+    hal::print(*console, "0 deg\n");
     servo.position(0.0_deg);
-    hal::delay(clock, 5000ms);
+    hal::delay(*clock, 5000ms);
 
-    hal::print(console, "-45 deg\n");
+    hal::print(*console, "-45 deg\n");
     servo.position(-45.0_deg);
-    hal::delay(clock, 5000ms);
+    hal::delay(*clock, 5000ms);
   }
 }

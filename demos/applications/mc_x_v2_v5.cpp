@@ -24,112 +24,21 @@
 #include <libhal/units.hpp>
 #include <resource_list.hpp>
 
-namespace hal {
-/**
- * @ingroup Serial
- * @brief Write formatted string data to serial buffer and drop return value
- *
- * Uses snprintf internally and writes to a local statically allocated an array.
- * This function will never dynamically allocate like how standard std::printf
- * does.
- *
- * This function does NOT include the NULL character when transmitting the data
- * over the serial port.
- *
- * @tparam buffer_size - Size of the buffer to allocate on the stack to store
- * the formatted message.
- * @tparam Parameters - printf arguments
- * @param p_serial - serial port to write data to
- * @param p_format - printf style null terminated format string
- * @param p_parameters - printf arguments
- */
-template<size_t buffer_size, typename... Parameters>
-void print(v5::serial& p_serial,
-           char const* p_format,
-           Parameters... p_parameters)
-{
-  static_assert(buffer_size > 2);
-  constexpr int unterminated_max_string_size =
-    static_cast<int>(buffer_size) - 1;
-
-  std::array<char, buffer_size> buffer{};
-  int length =
-    std::snprintf(buffer.data(), buffer.size(), p_format, p_parameters...);
-
-  if (length > unterminated_max_string_size) {
-    // Print out what was able to be written to the buffer
-    length = unterminated_max_string_size;
-  }
-
-  p_serial.write(as_bytes(std::string_view(buffer.data(), length)));
-}
-
-/**
- * @ingroup Serial
- * @brief Write data to serial buffer and drop return value
- *
- * Only use this with serial ports with infallible write operations, meaning
- * they will never return an error result.
- *
- * @tparam byte_array_t - data array type
- * @param p_serial - serial port to write data to
- * @param p_data - data to be sent over the serial port
- */
-template<typename byte_array_t>
-void print(v5::serial& p_serial, byte_array_t&& p_data)
-{
-  p_serial.write(as_bytes(p_data));
-}
-
-std::uint64_t future_deadline(hal::v5::steady_clock& p_steady_clock,
-                              hal::time_duration p_duration)
-{
-  using period = decltype(p_duration)::period;
-  auto const frequency = p_steady_clock.frequency();
-  auto const tick_period = wavelength<period>(static_cast<float>(frequency));
-  auto ticks_required = p_duration / tick_period;
-  using unsigned_ticks = std::make_unsigned_t<decltype(ticks_required)>;
-
-  if (ticks_required <= 1) {
-    ticks_required = 1;
-  }
-
-  auto const ticks = static_cast<unsigned_ticks>(ticks_required);
-  auto const future_timestamp = ticks + p_steady_clock.uptime();
-
-  return future_timestamp;
-}
-void delay(hal::v5::steady_clock& p_steady_clock, hal::time_duration p_duration)
-{
-  auto ticks_until_timeout = future_deadline(p_steady_clock, p_duration);
-  while (p_steady_clock.uptime() < ticks_until_timeout) {
-    continue;
-  }
-}
-class dummy_allow : public hal::can_identifier_filter
-{
-  void driver_allow(std::optional<u16>) override
-  {
-  }
-};
-}  // namespace hal
-
-void application(resource_list&)
+void application()
 {
   using namespace std::literals;
   using namespace hal::literals;
 
-  hal::dummy_allow dummy{};
-  auto clock = resource::steady_clock();
-  auto manager = resource::can_bus_manager();
-  auto console = resource::serial_console(512);
+  auto clock = resources::clock();
+  auto manager = resources::can_bus_manager();
+  auto transceiver = resources::can_transceiver();
+  auto filter = resources::can_identifier_filter();
+  auto console = resources::console();
   // Needs to be set to this baud rate to work with the default firmware CAN
   // baud rate.
   manager->baud_rate(1_MHz);
-  manager->filter_mode(hal::v5::can_bus_manager::accept::all);
+  manager->filter_mode(hal::can_bus_manager::accept::all);
   manager->bus_on();
-
-  auto transceiver = resource::can_transceiver();
 
   hal::print(*console, "RMD MC-X Smart Servo Application Starting...\n\n"sv);
 
@@ -141,7 +50,7 @@ void application(resource_list&)
       auto const address = starting_device_address + address_offset;
       hal::print<32>(*console, "Using address: 0x%04X\n", address);
       hal::actuator::rmd_mc_x_v2 mc_x(
-        *transceiver, dummy, *clock, 36.0f, address);
+        *transceiver, *filter, *clock, 36.0f, address);
 
       auto motor = mc_x.acquire_velocity_motor();
       auto servo = mc_x.acquire_velocity_servo();
