@@ -15,10 +15,13 @@ from conan import ConanFile
 
 
 class demos(ConanFile):
-    python_requires = "libhal-bootstrap/[>=4.3.0 <5]"
+    python_requires = "libhal-bootstrap/[>=4.5.0 <5]"
     python_requires_extend = "libhal-bootstrap.demo"
 
     def requirements(self):
         bootstrap = self.python_requires["libhal-bootstrap"]
-        bootstrap.module.add_demo_requirements(self)
-        self.requires("libhal-actuator/[1.2.1 || latest]")
+        bootstrap.module.add_demo_requirements(
+            self, inject_util=False)
+        self.requires("libhal-util/[^5.6.0]")
+        self.requires("libhal-expander/[^1.3.0]")
+        self.requires("libhal-actuator/[1.2.2 || latest]")

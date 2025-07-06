@@ -21,6 +21,7 @@ libhal_build_demos(
   drc_v2
   drc_v2_resources
   mc_x_v2
+  mc_x_v2_v5
   mc_x_v2_resources
   rc_servo
 
@@ -29,7 +30,9 @@ libhal_build_demos(
 
   PACKAGES
   libhal-actuator
+  libhal-expander
 
   LINK_LIBRARIES
   libhal::actuator
+  libhal::expander
 )
