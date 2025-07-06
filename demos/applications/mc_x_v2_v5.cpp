@@ -36,7 +36,7 @@ void application()
   auto console = resources::console();
   // Needs to be set to this baud rate to work with the default firmware CAN
   // baud rate.
-  manager->baud_rate(1_MHz);
+  // manager->baud_rate(1_MHz);
   manager->filter_mode(hal::can_bus_manager::accept::all);
   manager->bus_on();
 
@@ -96,11 +96,11 @@ void application()
         print_feedback();
 
         hal::print(*console, "motor drive 20rpm\n"sv);
-        motor.drive(20.0_rpm);
+        motor.drive(10.0_rpm);
         print_feedback();
 
         hal::print(*console, "motor drive -20rpm\n"sv);
-        motor.drive(-20.0_rpm);
+        motor.drive(-10.0_rpm);
         print_feedback();
       }
     } catch (hal::timed_out const&) {
@@ -132,7 +132,7 @@ void application()
       throw;  // see if anyone else can handle the exception
     }
 
-    address_offset = (address_offset + 1) % 8;
-    hal::delay(*clock, 1s);
+    address_offset = (address_offset + 1) % 32;
+    hal::delay(*clock, 200ms);
   }
 }

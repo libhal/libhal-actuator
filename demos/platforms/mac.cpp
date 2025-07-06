@@ -121,7 +121,6 @@ hal::v5::strong_ptr<hal::can_transceiver> can_transceiver()
   return hal::acquire_can_transceiver(
     resources::driver_allocator(), can_usb, 32);
 }
-
 hal::v5::strong_ptr<hal::can_identifier_filter> can_identifier_filter()
 {
   class dummy_allow : public hal::can_identifier_filter

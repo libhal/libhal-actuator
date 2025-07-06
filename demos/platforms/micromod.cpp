@@ -12,28 +12,112 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <libhal-exceptions/control.hpp>
 #include <libhal-micromod/micromod.hpp>
+#include <libhal-util/steady_clock.hpp>
+#include <libhal/pointers.hpp>
 
 #include <resource_list.hpp>
 
-void initialize_platform(resource_list& p_resources)
+hal::v5::optional_ptr<hal::steady_clock> clock_ptr;
+hal::v5::optional_ptr<hal::serial> console_ptr;
+hal::v5::optional_ptr<hal::output_pin> status_led_ptr;
+
+[[noreturn]] void terminate_handler() noexcept
 {
-  using namespace hal::literals;
-  p_resources.reset = +[]() { hal::micromod::v1::reset(); },
+  if (not status_led_ptr && not clock_ptr) {
+    // spin here until debugger is connected
+    while (true) {
+      continue;
+    }
+  }
 
-  hal::micromod::v1::initialize_platform();
-
-  p_resources.status_led = &hal::micromod::v1::led();
-  p_resources.clock = &hal::micromod::v1::uptime_clock();
-  p_resources.console = &hal::micromod::v1::console(hal::buffer<128>);
-  if constexpr (use_can_v1) {
-    p_resources.can = &hal::micromod::v1::can();
-  } else {
-    static std::array<hal::can_message, 4> receive_buffer{};
-    p_resources.can_transceiver =
-      &hal::micromod::v1::can_transceiver(receive_buffer);
-    p_resources.can_bus_manager = &hal::micromod::v1::can_bus_manager();
-    p_resources.can_identifier_filter =
-      &hal::micromod::v1::can_identifier_filter0();
+  // Otherwise, blink the led in a pattern
+  while (true) {
+    using namespace std::chrono_literals;
+    status_led_ptr->level(false);
+    hal::delay(*clock_ptr, 100ms);
+    status_led_ptr->level(true);
+    hal::delay(*clock_ptr, 100ms);
+    status_led_ptr->level(false);
+    hal::delay(*clock_ptr, 100ms);
+    status_led_ptr->level(true);
+    hal::delay(*clock_ptr, 1000ms);
   }
 }
+
+void initialize_platform()
+{
+  using namespace hal::literals;
+  hal::set_terminate(terminate_handler);
+  hal::micromod::v1::initialize_platform();
+}
+
+namespace resources {
+using namespace hal::literals;
+
+std::pmr::polymorphic_allocator<> driver_allocator()
+{
+  static std::array<hal::byte, 1024> driver_memory{};
+  static std::pmr::monotonic_buffer_resource resource(
+    driver_memory.data(),
+    driver_memory.size(),
+    std::pmr::null_memory_resource());
+  return &resource;
+}
+
+void reset()
+{
+  hal::micromod::v1::reset();
+}
+
+void sleep(hal::time_duration p_duration)
+{
+  auto delay_clock = resources::clock();
+  hal::delay(*delay_clock, p_duration);
+}
+
+hal::v5::strong_ptr<hal::steady_clock> clock()
+{
+  throw hal::operation_not_supported(nullptr);
+  // return hal::micromod::v2::uptime_clock();
+}
+
+hal::v5::strong_ptr<hal::serial> console()
+{
+  throw hal::operation_not_supported(nullptr);
+  // return hal::micromod::v2::console(hal::buffer<128>);
+}
+
+hal::v5::strong_ptr<hal::output_pin> status_led()
+{
+  throw hal::operation_not_supported(nullptr);
+  // return hal::micromod::v2::led();
+}
+
+hal::v5::strong_ptr<hal::can_transceiver> can_transceiver()
+{
+  throw hal::operation_not_supported(nullptr);
+  // static std::array<hal::can_message, 4> receive_buffer{};
+  // return hal::micromod::v2::can_transceiver(receive_buffer);
+}
+
+hal::v5::strong_ptr<hal::can_bus_manager> can_bus_manager()
+{
+  throw hal::operation_not_supported(nullptr);
+  // return hal::micromod::v2::can_bus_manager();
+}
+
+hal::v5::strong_ptr<hal::can_identifier_filter> can_identifier_filter()
+{
+  throw hal::operation_not_supported(nullptr);
+  // return hal::micromod::v2::can_identifier_filter0();
+}
+
+hal::v5::strong_ptr<hal::pwm> pwm()
+{
+  throw hal::operation_not_supported(nullptr);
+  // return hal::micromod::v2::pwm();
+}
+
+}  // namespace resources
