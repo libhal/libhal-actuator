@@ -12,61 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <libhal-exceptions/control.hpp>
+#include <exception>
+
 #include <libhal-util/serial.hpp>
 #include <libhal-util/steady_clock.hpp>
 #include <libhal/error.hpp>
 
 #include <resource_list.hpp>
 
-resource_list resources{};
-
-[[noreturn]] void terminate_handler() noexcept
-{
-  if (not resources.status_led && not resources.clock) {
-    // spin here and wait for a debugger to be connected...
-    while (true) {
-      continue;
-    }
-  }
-
-  // Safe access via ::value() is not necessary here since we have already
-  // checked the resources above.
-  auto& led = **resources.status_led;
-  auto& clock = **resources.clock;
-
-  if (resources.console) {
-    hal::print(*resources.console.value(),
-               "Application Terminated!! Status LED: TERMINATE PATTERN\n");
-  }
-
-  // Otherwise, blink the led in a pattern...
-  while (true) {
-    using namespace std::chrono_literals;
-    led.level(false);
-    hal::delay(clock, 100ms);
-    led.level(true);
-    hal::delay(clock, 100ms);
-    led.level(false);
-    hal::delay(clock, 100ms);
-    led.level(true);
-    hal::delay(clock, 1000ms);
-  }
-}
-// test
 int main()
 {
-  hal::set_terminate(terminate_handler);
-  initialize_platform(resources);
+  initialize_platform();
 
   try {
-    application(resources);
-  } catch (std::bad_optional_access const& e) {
-    if (resources.console) {
-      hal::print(*resources.console.value(),
-                 "A resource required by the application was not available!\n"
-                 "Calling terminate!\n");
-    }
+    application();
+  } catch (hal::bad_optional_ptr_access const& p_error) {
+    throw;
   }  // Allow any other exceptions to terminate the application
 
   // Terminate if the code reaches this point.
