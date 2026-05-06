@@ -23,6 +23,7 @@ libhal_test_and_make_library(
 
   SOURCES
   src/rc_servo.cpp
+  src/rx_64.cpp
   src/smart_servo/rmd/drc_v2.cpp
   src/smart_servo/rmd/mc_x_v2.cpp
 

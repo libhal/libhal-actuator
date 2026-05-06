@@ -28,6 +28,7 @@ libhal_build_demos(
   mc_x_v2_resources
   rc_servo
   rc_servo16
+  rx_64_scan
 
   INCLUDES
   .
