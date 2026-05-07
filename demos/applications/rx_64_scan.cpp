@@ -46,29 +46,46 @@ void application()
   std::array<hal::hertz, 9> available_bauds = { 9600,   19200,  57600,
                                                 115200, 200000, 250000,
                                                 400000, 500000, 1000000 };
-  bool device_found = false;
+  // bool device_found = false;
   bool baud_rate_found = false;
   // loop through bauds
   for (auto current_baud : available_bauds) {
     uart->configure({ .baud_rate = current_baud });
     // loop through addresses
+    // for (uint8_t i = 0; i < 254; i++) {
+    //   // ping with address i, result into device_found
+    //   hal::print<32>(*console, "Checking ID: %d\n", i);
+    //   device_found = servo.ping_id(i);
+    //   if (device_found) {
+    //     baud_rate_found = true;
+    //     hal::print<32>(*console,
+    //                    "Servo found with baud rate %f at id: %d\n",
+    //                    current_baud,
+    //                    i);
+    //     servo.set_id(i);
+    //     // turn on led to id which servo has id reported
+    //     servo.led_toggle(true);
+    //     hal::delay(*clock, 3s);
+    //     servo.led_toggle(false);
+    //   }
+    // }
+
+    hal::print<32>(*console, "\nSending Pings on baud %f: ", current_baud);
+
     for (uint8_t i = 0; i < 254; i++) {
       // ping with address i, result into device_found
-      hal::print<32>(*console, "Checking ID: %d\n", i);
-      device_found = servo.ping_id(i);
-      if (device_found) {
-        baud_rate_found = true;
-        hal::print<32>(*console,
-                       "Servo found with baud rate %f at id: %d\n",
-                       current_baud,
-                       i);
-        servo.set_id(i);
-        // turn on led to id which servo has id reported
-        servo.led_toggle(true);
-        hal::delay(*clock, 3s);
-        servo.led_toggle(false);
+      hal::print<32>(*console, "%d", i);
+      servo.ping_id(i);
+      if (i != 253) {
+        hal::print(*console, ", ");
       }
     }
+    auto id = servo.read_serial();
+    if (id != 254) {
+      hal::print<32>(*console, "\nID found: %d", id);
+      baud_rate_found = true;
+    }
+
     if (baud_rate_found) {
       break;
     }

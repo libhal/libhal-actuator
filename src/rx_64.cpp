@@ -14,6 +14,7 @@
 
 #include <cmath>
 
+#include <libhal/error.hpp>
 #include <libhal/timeout.hpp>
 #include <numeric>
 
@@ -52,13 +53,17 @@ bool rx_64::ping_id(uint8_t p_id)
   std::array<hal::byte, 6> send_bytes = { 0xFF, 0xFF, (hal::byte)p_id,
                                           0x02, 0x01, 0xFB };
   hal::write(*m_serial, send_bytes, hal::never_timeout());
-  auto response = hal::read<6>(*m_serial, hal::create_timeout(*m_clock, 1ms));
-  if (response[0] == 0xFF && response[1] == 0xFF) {
-    // device responded
-    // TODO check full packet and checksum
-    return true;
-  }
-  return false;
+  // try {
+  //   auto response = hal::read<6>(*m_serial, hal::create_timeout(*m_clock,
+  //   1ms)); if (response[0] == 0xFF && response[1] == 0xFF) {
+  //     // device responded
+  //     // TODO check full packet and checksum
+  //     m_id = p_id;
+  //   }
+  // } catch (hal::timed_out const&) {
+  //   return false;
+  // }
+  return true;
 }
 
 rx_64::error_type rx_64::led_toggle(bool p_on)
@@ -69,6 +74,24 @@ rx_64::error_type rx_64::led_toggle(bool p_on)
   }
   write_small_register(register_byte::led_toggle, toggle_byte);
   return error_type::no_error;
+}
+
+uint8_t rx_64::read_serial()
+{
+  using namespace std::chrono_literals;
+  uint8_t address = 254;
+  try {
+    auto response = hal::read<6>(*m_serial, hal::create_timeout(*m_clock, 1ms));
+    if (response[0] == 0xFF && response[1] == 0xFF) {
+      // device responded
+      // TODO check full packet and checksum
+      address = response[2];
+      m_id = address;
+    }
+  } catch (hal::timed_out const&) {
+    return 254;
+  }
+  return address;
 }
 
 rx_64::error_type rx_64::set_id(uint8_t p_id)

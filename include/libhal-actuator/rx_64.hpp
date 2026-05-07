@@ -108,6 +108,7 @@ public:
 
   bool ping_id(uint8_t p_id);
   error_type led_toggle(bool p_on);
+  uint8_t read_serial();
 
   error_type set_torque_limit(float p_percent);
   error_type set_temp_limit(uint8_t p_temp);
