@@ -51,7 +51,10 @@ bool rx_64::ping_id(uint8_t p_id)
 {
   using namespace std::chrono_literals;
   std::array<hal::byte, 6> send_bytes = { 0xFF, 0xFF, (hal::byte)p_id,
-                                          0x02, 0x01, 0xFB };
+                                          0x02, 0x01, 0x00 };
+  hal::byte const temp =
+    std::accumulate(send_bytes.begin() + 2, send_bytes.begin() + 5, 0);
+  send_bytes[5] = ~temp;
   hal::write(*m_serial, send_bytes, hal::never_timeout());
   // try {
   //   auto response = hal::read<6>(*m_serial, hal::create_timeout(*m_clock,
@@ -81,7 +84,8 @@ uint8_t rx_64::read_serial()
   using namespace std::chrono_literals;
   uint8_t address = 254;
   try {
-    auto response = hal::read<6>(*m_serial, hal::create_timeout(*m_clock, 1ms));
+    auto response =
+      hal::read<6>(*m_serial, hal::create_timeout(*m_clock, 500ms));
     if (response[0] == 0xFF && response[1] == 0xFF) {
       // device responded
       // TODO check full packet and checksum
