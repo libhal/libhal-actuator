@@ -17,6 +17,7 @@
 // only once, no matter how many times it is included.
 #pragma once
 
+#include <cstdint>
 #include <libhal-util/steady_clock.hpp>
 #include <libhal/pointers.hpp>
 #include <libhal/serial.hpp>
@@ -97,6 +98,7 @@ public:
   uint8_t get_temp();
 
   float get_torque_limit();
+  uint8_t get_torque_enable();
   uint8_t get_temp_limit();
   float get_min_voltage();
   float get_max_voltage();
@@ -105,6 +107,8 @@ public:
   uint8_t get_id();
   hal::degrees get_min_angle();
   hal::degrees get_max_angle();
+  hal::degrees get_current_angle();
+  uint16_t get_punch();
 
   bool ping_id(uint8_t p_id);
   error_type led_toggle(bool p_on);
@@ -119,12 +123,16 @@ public:
   error_type set_id(uint8_t p_id);
   error_type set_min_angle(hal::degrees p_angle);
   error_type set_max_angle(hal::degrees p_angle);
+  error_type set_torque_enable(bool p_enable);
 
 private:
   error_type write_small_register(register_byte p_instruction,
                                   hal::byte p_value);
   error_type write_large_register(register_byte p_instruction,
                                   uint16_t p_value);
+
+  uint8_t read_small_register(register_byte p_register);
+  uint16_t read_large_register(register_byte p_register);
 
   hal::strong_ptr<hal::serial> m_serial;
   hal::strong_ptr<hal::steady_clock> m_clock;

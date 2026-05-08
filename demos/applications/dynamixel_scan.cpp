@@ -48,19 +48,19 @@ void application()
                                                 115200, 200000, 250000,
                                                 400000, 500000, 1000000 };
   bool baud_rate_found = false;
+  bool device_found = false;
   // loop through bauds
   for (auto current_baud : available_bauds) {
     uart->configure({ .baud_rate = current_baud });
     hal::print<48>(*console, "\nSending Pings on baud %f : ", current_baud);
     for (uint8_t i = 0; i < 254; i++) {
       hal::print(*console, ".");
-      servo.ping_id(i);
-      hal::delay(*clock, 10ms);
-    }
-    uint8_t id = servo.read_serial();
-    if (id != 254) {
-      hal::print<64>(*console, "\nID found: %d \n", id);
-      baud_rate_found = true;
+      device_found = servo.ping_id(i);
+      if (device_found) {
+        hal::print<64>(*console, "\nID found: %d \n", i);
+
+        baud_rate_found = true;
+      }
     }
 
     if (baud_rate_found) {

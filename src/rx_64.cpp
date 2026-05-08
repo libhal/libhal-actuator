@@ -14,6 +14,7 @@
 
 #include <cmath>
 
+#include <cstdint>
 #include <libhal/error.hpp>
 #include <libhal/timeout.hpp>
 #include <numeric>
@@ -56,16 +57,18 @@ bool rx_64::ping_id(uint8_t p_id)
     std::accumulate(send_bytes.begin() + 2, send_bytes.begin() + 5, 0);
   send_bytes[5] = ~temp;
   hal::write(*m_serial, send_bytes, hal::never_timeout());
-  // try {
-  //   auto response = hal::read<6>(*m_serial, hal::create_timeout(*m_clock,
-  //   1ms)); if (response[0] == 0xFF && response[1] == 0xFF) {
-  //     // device responded
-  //     // TODO check full packet and checksum
-  //     m_id = p_id;
-  //   }
-  // } catch (hal::timed_out const&) {
-  //   return false;
-  // }
+
+  try {
+    auto response =
+      hal::read<6>(*m_serial, hal::create_timeout(*m_clock, 500ms));
+    if (response[0] == 0xFF && response[1] == 0xFF) {
+      // device responded
+      // TODO check full packet and checksum
+      m_id = p_id;
+    }
+  } catch (hal::timed_out const&) {
+    return false;
+  }
   return true;
 }
 
@@ -111,7 +114,7 @@ rx_64::error_type rx_64::write_small_register(register_byte p_register,
                                           0x04,    0x03, (hal::byte)p_register,
                                           p_value, 0x00 };
   hal::byte const temp =
-    std::accumulate(send_bytes.begin() + 2, send_bytes.begin() + 6, 0);
+    std::accumulate(send_bytes.begin() + 2, send_bytes.begin() + 7, 0);
   // send_bytes[7] = (~temp) & ((1 << 8) - 1);
   send_bytes[7] = ~temp;
 
@@ -128,10 +131,10 @@ rx_64::error_type rx_64::write_large_register(register_byte p_register,
   hal::byte const value_hi = (p_value >> 8);
 
   std::array<hal::byte, 9> send_bytes = {
-    0xFF,      0xFF,     m_id, 0x04, 0x03, (hal::byte)p_register,
+    0xFF,      0xFF,     m_id, 0x05, 0x03, (hal::byte)p_register,
     value_low, value_hi, 0x00
   };
-  hal::byte const temp = std::accumulate(&send_bytes[2], &send_bytes[7], 0);
+  hal::byte const temp = std::accumulate(&send_bytes[2], &send_bytes[8], 0);
   send_bytes[8] = ~temp;
   hal::write(*m_serial, send_bytes, hal::never_timeout());
   // std::array<hal::byte, 7> response;
@@ -139,11 +142,95 @@ rx_64::error_type rx_64::write_large_register(register_byte p_register,
   return error_type::no_error;
 }
 
+uint8_t rx_64::read_small_register(rx_64::register_byte p_register)
+{
+  using namespace std::chrono_literals;
+
+  std::array<hal::byte, 8> send_bytes = { 0xFF, 0xFF, m_id,
+                                          0x04, 0x02, (hal::byte)p_register,
+                                          0x01, 0x00 };
+  hal::byte const temp = std::accumulate(&send_bytes[2], &send_bytes[7], 0);
+  send_bytes[7] = ~temp;
+  hal::write(*m_serial, send_bytes, hal::never_timeout());
+
+  try {
+    auto response =
+      hal::read<7>(*m_serial, hal::create_timeout(*m_clock, 500ms));
+    if (response[0] == 0xFF && response[1] == 0xFF) {
+      // device responded
+      // TODO check full packet and checksum
+      return response[5];
+    }
+  } catch (hal::timed_out const&) {
+    return 0;
+  }
+  return 0;
+}
+
+uint16_t rx_64::read_large_register(rx_64::register_byte p_register)
+{
+  using namespace std::chrono_literals;
+
+  std::array<hal::byte, 8> send_bytes = { 0xFF, 0xFF, m_id,
+                                          0x04, 0x02, (hal::byte)p_register,
+                                          0x02, 0x00 };
+  hal::byte const temp = std::accumulate(&send_bytes[2], &send_bytes[7], 0);
+  send_bytes[7] = ~temp;
+  hal::write(*m_serial, send_bytes, hal::never_timeout());
+
+  try {
+    auto response =
+      hal::read<8>(*m_serial, hal::create_timeout(*m_clock, 500ms));
+    if (response[0] == 0xFF && response[1] == 0xFF) {
+      // device responded
+      // TODO check full packet and checksum
+      return (response[5] | (response[6] << 8));
+    }
+  } catch (hal::timed_out const&) {
+    return 0;
+  }
+  return 0;
+}
+
+hal::degrees rx_64::get_current_angle()
+{
+  auto response = read_large_register(rx_64::register_byte::present_position);
+  return response;
+}
+
+uint8_t rx_64::get_torque_enable()
+{
+  return read_small_register(rx_64::register_byte::torque_enable);
+}
+
+uint16_t rx_64::get_punch()
+{
+  return read_large_register(rx_64::register_byte::punch);
+}
+
+hal::degrees rx_64::get_min_angle()
+{
+  return read_large_register(register_byte::cw_limit);
+}
+hal::degrees rx_64::get_max_angle()
+{
+  return read_large_register(register_byte::ccw_limit);
+}
+
 rx_64::error_type rx_64::position(hal::degrees p_angle)
 {
   // 3.41 is angle scale
   auto const angle_bytes = static_cast<u16>(roundf(p_angle * 3.41f));
   return write_large_register(register_byte::goal_position, angle_bytes);
+}
+
+rx_64::error_type rx_64::set_torque_enable(bool p_enable)
+{
+  hal::byte data_byte = 0x00;
+  if (p_enable) {
+    data_byte = 0x01;
+  }
+  return write_small_register(register_byte::torque_enable, data_byte);
 }
 
 }  // namespace hal::actuator
