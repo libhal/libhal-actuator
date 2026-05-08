@@ -45,13 +45,42 @@ void application()
 
   auto servo = hal::actuator::rx_64(uart, servo_config, clock);
   auto min_angle = servo.get_min_angle();
-  hal::print<48>(*console, "\nMin Angle %f", min_angle);
+  hal::print<32>(*console, "\nMin Angle: %.2f", min_angle);
   hal::delay(*clock, 10ms);
+
   auto max_angle = servo.get_max_angle();
-  hal::print<48>(*console, "\nMax Angle %f", max_angle);
+  hal::print<32>(*console, "\nMax Angle: %.2f", max_angle);
+  hal::delay(*clock, 10ms);
+
+  auto torque_limit = servo.get_torque_limit();
+  hal::print<32>(*console, "\nTorque Limit: %.2f", torque_limit);
+  hal::delay(*clock, 10ms);
+
+  auto temp_limit = servo.get_temp_limit();
+  hal::print<32>(*console, "\nTemp Limit: %.2f", temp_limit);
+  hal::delay(*clock, 10ms);
+
+  auto min_voltage = servo.get_min_voltage();
+  hal::print<32>(*console, "\nMin Volt: %.2f", min_voltage);
+  hal::delay(*clock, 10ms);
+
+  auto max_voltage = servo.get_max_voltage();
+  hal::print<32>(*console, "\nMax Volt: %.2f", max_voltage);
+  hal::delay(*clock, 10ms);
+
+  auto return_delay = servo.get_return_delay_time();
+  hal::print<32>(*console, "\nReturn Delay: %d", return_delay);
+  hal::delay(*clock, 10ms);
+
+  auto punch = servo.get_punch();
+  hal::print<32>(*console, "\nPunch: %d", punch);
   hal::delay(*clock, 10ms);
 
   servo.set_torque_enable(true);
+  hal::delay(*clock, 10ms);
+
+  auto torque_enable = servo.get_torque_enable();
+  hal::print<32>(*console, "\nTorque Enable: %.2f", torque_enable);
   hal::delay(*clock, 10ms);
 
   // loop and move servo

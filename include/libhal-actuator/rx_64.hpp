@@ -29,15 +29,16 @@ class rx_64
 public:
   struct config
   {
-    float torque_limit;
-    uint8_t temp_limit;
-    float min_voltage;
-    float max_voltage;
     hertz baud_rate;
-    uint8_t return_delay_time;
     uint8_t id;
     hal::degrees min_angle = 0;
     hal::degrees max_angle = 300;
+  };
+
+  struct angle_range
+  {
+    hal::degrees min_angle;
+    hal::degrees max_angle;
   };
 
   rx_64(hal::strong_ptr<hal::serial> const& p_serial,
@@ -55,7 +56,7 @@ public:
     no_error
   };
 
-  enum class register_byte
+  enum class register_byte : hal::byte
   {
     model_number = 0x00,
     firmware_ver = 0x02,
@@ -92,7 +93,7 @@ public:
   };
 
   bool ping_id(uint8_t p_id);
-  error_type led_toggle(bool p_on);
+  void led_toggle(bool p_on);
 
   bool is_moving();
   std::tuple<float, bool> get_speed();
@@ -112,23 +113,21 @@ public:
   hal::degrees get_current_angle();
   uint16_t get_punch();
 
-  error_type position(hal::degrees p_angle);
-  error_type set_torque_enable(bool p_enable);
-  error_type set_torque_limit(float p_percent);
-  error_type set_temp_limit(uint8_t p_temp);
-  error_type set_min_voltage(float p_voltage);
-  error_type set_max_voltage(float p_voltage);
-  error_type set_baud_rate(hertz p_baud);
-  error_type set_return_delay_time(uint16_t p_microseconds);
-  error_type set_id(uint8_t p_id);
-  error_type set_min_angle(hal::degrees p_angle);
-  error_type set_max_angle(hal::degrees p_angle);
+  void position(hal::degrees p_angle);
+  void set_torque_enable(bool p_enable);
+  void set_torque_limit(float p_percent);
+  void set_temp_limit(uint8_t p_temp);
+  void set_min_voltage(float p_voltage);
+  void set_max_voltage(float p_voltage);
+  void set_baud_rate(hertz p_baud);
+  void set_return_delay_time(uint16_t p_microseconds);
+  void set_id(uint8_t p_id);
+  void set_min_angle(hal::degrees p_angle);
+  void set_max_angle(hal::degrees p_angle);
 
 private:
-  error_type write_small_register(register_byte p_instruction,
-                                  hal::byte p_value);
-  error_type write_large_register(register_byte p_instruction,
-                                  uint16_t p_value);
+  void write_small_register(register_byte p_instruction, hal::byte p_value);
+  void write_large_register(register_byte p_instruction, uint16_t p_value);
 
   uint8_t read_small_register(register_byte p_register);
   uint16_t read_large_register(register_byte p_register);
@@ -136,6 +135,6 @@ private:
   hal::strong_ptr<hal::serial> m_serial;
   hal::strong_ptr<hal::steady_clock> m_clock;
   hal::byte m_id;
-  std::tuple<hal::degrees, hal::degrees> m_range;
+  angle_range m_range;
 };
 }  // namespace hal::actuator
