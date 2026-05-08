@@ -33,11 +33,11 @@ public:
     uint8_t temp_limit;
     float min_voltage;
     float max_voltage;
-    uint32_t baud_rate;
+    hertz baud_rate;
     uint8_t return_delay_time;
     uint8_t id;
-    uint16_t min_angle = 0;
-    uint16_t max_angle = 300;
+    hal::degrees min_angle = 0;
+    hal::degrees max_angle = 300;
   };
 
   rx_64(hal::strong_ptr<hal::serial> const& p_serial,
@@ -91,9 +91,11 @@ public:
     punch = 0x30
   };
 
-  error_type position(hal::degrees p_angle);
+  bool ping_id(uint8_t p_id);
+  error_type led_toggle(bool p_on);
+
   bool is_moving();
-  uint16_t get_speed();
+  std::tuple<float, bool> get_speed();
   float get_voltage();
   uint8_t get_temp();
 
@@ -102,28 +104,25 @@ public:
   uint8_t get_temp_limit();
   float get_min_voltage();
   float get_max_voltage();
-  uint32_t get_baud_rate();
-  uint8_t get_return_delay_time();
+  hertz get_baud_rate();
+  uint16_t get_return_delay_time();
   uint8_t get_id();
   hal::degrees get_min_angle();
   hal::degrees get_max_angle();
   hal::degrees get_current_angle();
   uint16_t get_punch();
 
-  bool ping_id(uint8_t p_id);
-  error_type led_toggle(bool p_on);
-  uint8_t read_serial();
-
+  error_type position(hal::degrees p_angle);
+  error_type set_torque_enable(bool p_enable);
   error_type set_torque_limit(float p_percent);
   error_type set_temp_limit(uint8_t p_temp);
   error_type set_min_voltage(float p_voltage);
   error_type set_max_voltage(float p_voltage);
-  error_type set_baud_rate(uint32_t p_baud);
-  error_type set_return_delay_time(uint8_t p_microseconds);
+  error_type set_baud_rate(hertz p_baud);
+  error_type set_return_delay_time(uint16_t p_microseconds);
   error_type set_id(uint8_t p_id);
   error_type set_min_angle(hal::degrees p_angle);
   error_type set_max_angle(hal::degrees p_angle);
-  error_type set_torque_enable(bool p_enable);
 
 private:
   error_type write_small_register(register_byte p_instruction,
@@ -137,5 +136,6 @@ private:
   hal::strong_ptr<hal::serial> m_serial;
   hal::strong_ptr<hal::steady_clock> m_clock;
   hal::byte m_id;
+  std::tuple<hal::degrees, hal::degrees> m_range;
 };
 }  // namespace hal::actuator
