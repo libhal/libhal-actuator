@@ -37,9 +37,11 @@ rx_64::rx_64(hal::strong_ptr<hal::serial> const& p_serial,
   , m_clock(p_clock)
   , m_id(p_settings.id)
 {
-  set_max_angle(p_settings.max_angle);
-  set_min_angle(p_settings.min_angle);
+  using namespace std::chrono_literals;
   m_serial->configure({ .baud_rate = p_settings.baud_rate });
+  set_max_angle(p_settings.max_angle);
+  hal::delay(*m_clock, 10ms);
+  set_min_angle(p_settings.min_angle);
 };
 
 bool rx_64::ping_id(uint8_t p_id)
@@ -256,6 +258,17 @@ void rx_64::write_small_register(register_byte p_register, hal::byte p_value)
   send_bytes[7] = ~temp;
 
   hal::write(*m_serial, send_bytes, hal::never_timeout());
+
+  try {
+    using namespace std::chrono_literals;
+    auto response =
+      hal::read<6>(*m_serial, hal::create_timeout(*m_clock, 500ms));
+    if (response[0] == 0xFF && response[1] == 0xFF) {
+      // device responded
+    }
+  } catch (hal::timed_out const&) {
+    return;
+  }
 }
 
 void rx_64::write_large_register(register_byte p_register, uint16_t p_value)
@@ -270,6 +283,16 @@ void rx_64::write_large_register(register_byte p_register, uint16_t p_value)
   hal::byte const temp = std::accumulate(&send_bytes[2], &send_bytes[8], 0);
   send_bytes[8] = ~temp;
   hal::write(*m_serial, send_bytes, hal::never_timeout());
+  try {
+    using namespace std::chrono_literals;
+    auto response =
+      hal::read<6>(*m_serial, hal::create_timeout(*m_clock, 500ms));
+    if (response[0] == 0xFF && response[1] == 0xFF) {
+      // device responded
+    }
+  } catch (hal::timed_out const&) {
+    return;
+  }
 }
 
 uint8_t rx_64::read_small_register(rx_64::register_byte p_register)

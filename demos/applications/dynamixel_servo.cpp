@@ -32,15 +32,9 @@ void application()
 
   hal::print(*console, "Dynamixel Demo Starting...\n");
 
-  hal::actuator::rx_64::config servo_config = { .torque_limit = 100,
-                                                .temp_limit = 80,
-                                                .min_voltage = 6.0,
-                                                .max_voltage = 19.0,
-                                                .baud_rate = 34,
-                                                .return_delay_time = 250,
-                                                .id = 4,
-                                                .min_angle = 0,
-                                                .max_angle = 300 };
+  hal::actuator::rx_64::config servo_config = {
+    .baud_rate = 57600, .id = 4, .min_angle = 0, .max_angle = 300
+  };
   uart->configure({ .baud_rate = 57600 });
 
   auto servo = hal::actuator::rx_64(uart, servo_config, clock);
@@ -57,7 +51,7 @@ void application()
   hal::delay(*clock, 10ms);
 
   auto temp_limit = servo.get_temp_limit();
-  hal::print<32>(*console, "\nTemp Limit: %.2f", temp_limit);
+  hal::print<32>(*console, "\nTemp Limit: %d", temp_limit);
   hal::delay(*clock, 10ms);
 
   auto min_voltage = servo.get_min_voltage();
@@ -80,7 +74,7 @@ void application()
   hal::delay(*clock, 10ms);
 
   auto torque_enable = servo.get_torque_enable();
-  hal::print<32>(*console, "\nTorque Enable: %.2f", torque_enable);
+  hal::print<32>(*console, "\nTorque Enable: %d", torque_enable);
   hal::delay(*clock, 10ms);
 
   // loop and move servo

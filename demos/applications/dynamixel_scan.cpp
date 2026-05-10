@@ -31,17 +31,9 @@ void application()
   auto uart = resources::uart2();
 
   hal::print(*console, "Dynamixel Scan Application Starting...\n");
-
-  hal::actuator::rx_64::config servo_config = { .torque_limit = 100,
-                                                .temp_limit = 80,
-                                                .min_voltage = 6.0,
-                                                .max_voltage = 19.0,
-                                                .baud_rate = 34,
-                                                .return_delay_time = 250,
-                                                .id = 254,
-                                                .min_angle = 0,
-                                                .max_angle = 300 };
-
+  hal::actuator::rx_64::config servo_config = {
+    .baud_rate = 57600, .id = 4, .min_angle = 0, .max_angle = 300
+  };
   auto servo = hal::actuator::rx_64(uart, servo_config, clock);
 
   std::array<hal::hertz, 9> available_bauds = { 9600,   19200,  57600,
