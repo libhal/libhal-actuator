@@ -265,6 +265,29 @@ void rx_64::set_speed(float p_rpms)
   write_large_register(register_byte::moving_speed, speed_byte);
 }
 
+void rx_64::sync_move_to_position(hal::degrees p_angle, rx_64 p_opposing_servo)
+{
+  auto clamped_angle =
+    std::clamp(p_angle, m_range.min_angle, m_range.max_angle);
+  // 3.41 is angle scale
+  auto const angle_byte = static_cast<u16>(roundf(clamped_angle * 3.41f));
+  auto const reversed_angle = 1023 - angle_byte;
+
+  uint8_t const angle_low = angle_byte;
+  uint8_t const angle_hi = (angle_byte >> 8);
+  uint8_t const reversed_low = reversed_angle;
+  uint8_t const reversed_hi = (reversed_angle >> 8);
+
+  auto const servo2_id = p_opposing_servo.get_id();
+  std::array<hal::byte, 14> send_bytes = {
+    0xFF, 0xFF,      0xFE,     0x0A,      0x83,         0x1E,        0x02,
+    m_id, angle_low, angle_hi, servo2_id, reversed_low, reversed_hi, 0x00
+  };
+  hal::byte const temp = std::accumulate(&send_bytes[2], &send_bytes[13], 0);
+  send_bytes[13] = ~temp;
+  hal::write(*m_serial, send_bytes, hal::never_timeout());
+}
+
 void rx_64::write_small_register(register_byte p_register, hal::byte p_value)
 {
   std::array<hal::byte, 8> send_bytes = { 0xFF,    0xFF, m_id,

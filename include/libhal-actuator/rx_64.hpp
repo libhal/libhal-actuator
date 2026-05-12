@@ -127,6 +127,8 @@ public:
   void set_max_angle(hal::degrees p_angle);
   void set_speed(float p_rpms);
 
+  void sync_move_to_position(hal::degrees p_angle, rx_64 p_opposing_servo);
+
 private:
   void write_small_register(register_byte p_instruction, hal::byte p_value);
   void write_large_register(register_byte p_instruction, uint16_t p_value);
