@@ -24,7 +24,7 @@
 #include <libhal/units.hpp>
 
 namespace hal::actuator {
-class rx_64
+class mx_64
 {
 public:
   struct config
@@ -32,7 +32,7 @@ public:
     hertz baud_rate;
     uint8_t id;
     hal::degrees min_angle = 0;
-    hal::degrees max_angle = 300;
+    hal::degrees max_angle = 360;
   };
 
   struct angle_range
@@ -41,7 +41,7 @@ public:
     hal::degrees max_angle;
   };
 
-  rx_64(hal::strong_ptr<hal::serial> const& p_serial,
+  mx_64(hal::strong_ptr<hal::serial> const& p_serial,
         config const& p_settings,
         hal::strong_ptr<hal::steady_clock> const& p_clock);
 
@@ -72,12 +72,13 @@ public:
     status_return = 0x10,
     alarm_led = 0x11,
     shutdown = 0x12,
+    multi_turn_offset = 0x14,
+    resolution_divider = 0x16,
     torque_enable = 0x18,
     led_toggle = 0x19,
-    cw_compliance_margin = 0x1A,
-    ccw_compliance_margin = 0x1B,
-    cw_compliance_slope = 0x1C,
-    ccw_compliance_slope = 0x1D,
+    d_gain = 0x1A,
+    i_gain = 0x1B,
+    p_gain = 0x1C,
     goal_position = 0x1E,
     moving_speed = 0x20,
     torque_limit = 0x22,
@@ -89,7 +90,12 @@ public:
     instruction_registered = 0x2C,
     moving_status = 0x2E,
     lock_eeprom = 0x2F,
-    punch = 0x30
+    punch = 0x30,
+    realtime_tick = 0x32,
+    current = 0x44,
+    torque_ctrl_mode_enable = 0x46,
+    goal_torque = 0x47,
+    goal_accel = 0x49
   };
 
   bool ping_id(uint8_t p_id);
@@ -112,7 +118,7 @@ public:
   hal::degrees get_max_angle();
   hal::degrees get_current_angle();
   uint16_t get_punch();
-  float get_moving_speed();
+  bool get_torque_ctrl_mode();
 
   void position(hal::degrees p_angle);
   void set_torque_enable(bool p_enable);
@@ -125,7 +131,7 @@ public:
   void set_id(uint8_t p_id);
   void set_min_angle(hal::degrees p_angle);
   void set_max_angle(hal::degrees p_angle);
-  void set_speed(float p_rpms);
+  void set_punch(uint16_t p_value);
 
 private:
   void write_small_register(register_byte p_instruction, hal::byte p_value);
