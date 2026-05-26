@@ -32,69 +32,82 @@ void application()
 
   hal::print(*console, "Dynamixel Demo Starting...\n");
 
-  hal::actuator::rx_64::config rx_servo_config = {
-    .baud_rate = 57600, .id = 4, .min_angle = 0, .max_angle = 300
+  hal::actuator::rx_64::config servo1_config = {
+    .baud_rate = 57600, .id = 1, .min_angle = 70, .max_angle = 230
   };
 
-  auto rx_servo = hal::actuator::rx_64(uart, rx_servo_config, clock);
-  auto min_angle = rx_servo.get_min_angle();
+  hal::actuator::rx_64::config servo2_config = {
+    .baud_rate = 57600, .id = 2, .min_angle = 70, .max_angle = 230
+  };
+
+  auto servo1 = hal::actuator::rx_64(uart, servo1_config, clock);
+  auto servo2 = hal::actuator::rx_64(uart, servo2_config, clock);
+
+  auto min_angle = servo1.get_min_angle();
   hal::print<32>(*console, "\nMin Angle: %.2f", min_angle);
   hal::delay(*clock, 10ms);
 
-  auto max_angle = rx_servo.get_max_angle();
+  auto max_angle = servo1.get_max_angle();
   hal::print<32>(*console, "\nMax Angle: %.2f", max_angle);
   hal::delay(*clock, 10ms);
 
-  auto torque_limit = rx_servo.get_torque_limit();
+  auto torque_limit = servo1.get_torque_limit();
   hal::print<32>(*console, "\nTorque Limit: %.2f", torque_limit);
   hal::delay(*clock, 10ms);
 
-  auto temp_limit = rx_servo.get_temp_limit();
+  auto temp_limit = servo1.get_temp_limit();
   hal::print<32>(*console, "\nTemp Limit: %d", temp_limit);
   hal::delay(*clock, 10ms);
 
-  auto min_voltage = rx_servo.get_min_voltage();
+  auto min_voltage = servo1.get_min_voltage();
   hal::print<32>(*console, "\nMin Volt: %.2f", min_voltage);
   hal::delay(*clock, 10ms);
 
-  auto max_voltage = rx_servo.get_max_voltage();
+  auto max_voltage = servo1.get_max_voltage();
   hal::print<32>(*console, "\nMax Volt: %.2f", max_voltage);
   hal::delay(*clock, 10ms);
 
-  auto return_delay = rx_servo.get_return_delay_time();
+  auto return_delay = servo1.get_return_delay_time();
   hal::print<32>(*console, "\nReturn Delay: %d", return_delay);
   hal::delay(*clock, 10ms);
 
-  auto punch = rx_servo.get_punch();
+  auto punch = servo1.get_punch();
   hal::print<32>(*console, "\nPunch: %d", punch);
   hal::delay(*clock, 10ms);
 
-  rx_servo.set_torque_enable(true);
+  servo1.set_torque_enable(true);
   hal::delay(*clock, 10ms);
 
-  auto torque_enable = rx_servo.get_torque_enable();
+  auto torque_enable = servo1.get_torque_enable();
   hal::print<32>(*console, "\nTorque Enable: %d", torque_enable);
   hal::delay(*clock, 10ms);
 
-  auto moving_speed = rx_servo.get_moving_speed();
+  auto moving_speed = servo1.get_moving_speed();
   hal::print<32>(*console, "\nRPMs: %.2f", moving_speed);
   hal::delay(*clock, 10ms);
 
-  rx_servo.set_torque_limit(100.0f);
+  // servo1.set_torque_limit(100.0f);
 
-  // loop and move rx_servo
+  // loop and move servo
   while (true) {
-    hal::print(*console, "\n90");
-    rx_servo.position(90);
+    hal::print(*console, "\n70");
+    // servo1.position(70);
+    servo1.sync_move_to_position(70, servo2);
     hal::delay(*clock, 3000ms);
+
     hal::print(*console, "\n150");
-    rx_servo.position(150);
+    // servo1.position(150);
+    servo1.sync_move_to_position(150, servo2);
     hal::delay(*clock, 3000ms);
-    hal::print(*console, "\n240");
-    rx_servo.position(240);
+
+    hal::print(*console, "\n230");
+    // servo1.position(230);
+    servo1.sync_move_to_position(230, servo2);
     hal::delay(*clock, 3000ms);
+
     hal::print(*console, "\n150");
-    rx_servo.position(150);
+    // servo1.position(150);
+    servo1.sync_move_to_position(150, servo2);
     hal::delay(*clock, 3000ms);
   }
 }
