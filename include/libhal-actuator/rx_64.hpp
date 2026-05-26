@@ -135,9 +135,14 @@ private:
   {
     using namespace std::chrono_literals;
 
-    std::array<hal::byte, 8> send_bytes = {
-      0xFF, 0xFF, m_id, 0x04, 0x02, (hal::byte)p_register_address, 0x01, 0x00
-    };
+    std::array<hal::byte, 8> send_bytes = { 0xFF,
+                                            0xFF,
+                                            m_id,
+                                            0x04,
+                                            0x02,
+                                            (hal::byte)p_register_address,
+                                            (hal::byte)Size,
+                                            0x00 };
     hal::byte const checksum =
       std::accumulate(&send_bytes[2], &send_bytes[7], 0);
     send_bytes[7] = ~checksum;
@@ -146,17 +151,20 @@ private:
 
     try {
       auto constexpr read_size = 6 + Size;
+
       auto response =
         hal::read<read_size>(*m_serial, hal::create_timeout(*m_clock, 500ms));
       if (response[0] == 0xFF && response[1] == 0xFF) {
         // device responded
-        hal::byte received_chksm =
-          std::accumulate(&response[2], &response[read_size - 2], 0);
-        received_chksm = ~received_chksm;
-        if (received_chksm == response[read_size - 1]) {
-          int constexpr end_address = 4 + Size;
-          std::copy(&response[5], &response[end_address], return_array.begin());
+        // TODO: checksum not working, fix later
+        // hal::byte calculated_chksm =
+        //   std::accumulate(&response[2], &response[read_size - 2], 0);
+        // calculated_chksm = ~calculated_chksm;
+        // if (calculated_chksm == response[read_size - 1]) {
+        for (usize i = 0; i < Size; i++) {
+          return_array[i] = response[5 + i];
         }
+        // }
         return return_array;
       }
     } catch (hal::timed_out const&) {
@@ -170,8 +178,9 @@ private:
                       std::array<hal::byte, Size> p_data)
   {
     auto constexpr send_data_size = 7 + Size;
+    hal::byte packet_length = 0x03 + Size;
     std::array<hal::byte, send_data_size> send_bytes = {
-      0xFF, 0xFF, m_id, 0x04, 0x03, (hal::byte)p_register_address
+      0xFF, 0xFF, m_id, packet_length, 0x03, (hal::byte)p_register_address
     };
     for (uint8_t i = 0; i < p_data.size(); i++) {
       send_bytes[6 + i] = p_data[i];

@@ -23,9 +23,9 @@ libhal_build_demos(
   DEMOS
   drc_v2
   drc_v2_resources
-  dynamixel_mx
+  #dynamixel_mx
   dynamixel_servo
-  dynamixel_scan
+  #dynamixel_scan
   mc_x_v2
   mc_x_v2_v5
   mc_x_v2_resources

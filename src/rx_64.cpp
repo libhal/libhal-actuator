@@ -45,12 +45,15 @@ rx_64::rx_64(hal::strong_ptr<hal::serial> const& p_serial,
   using namespace std::chrono_literals;
   m_serial->configure({ .baud_rate = p_settings.baud_rate });
   baud_rate(p_settings.baud_rate);
+  hal::delay(*m_clock, 5ms);
+  torque_enable(true);
+  hal::delay(*m_clock, 5ms);
   min_angle(p_settings.min_angle);
   m_range.first = p_settings.min_angle;
-  hal::delay(*m_clock, 10ms);
+  hal::delay(*m_clock, 5ms);
   max_angle(p_settings.max_angle);
   m_range.second = p_settings.max_angle;
-  torque_enable(true);
+  hal::delay(*m_clock, 5ms);
 };
 
 // TODO: consider keeping this function
@@ -243,7 +246,7 @@ void rx_64::torque_limit(float p_percent)
   auto const value = static_cast<uint16_t>(1023 * (clamped_percent / 100));
   hal::byte const value_low = value;
   hal::byte const value_hi = (value >> 8);
-  write_register(register_byte::goal_position,
+  write_register(register_byte::torque_limit,
                  std::array{ value_low, value_hi });
 }
 
@@ -323,8 +326,7 @@ void rx_64::min_angle(hal::degrees p_angle)
     hal::map(m_range.first, max_degree_range, position_raw_range));
   hal::byte const value_low = angle_byte;
   hal::byte const value_hi = (angle_byte >> 8);
-  write_register(register_byte::goal_position,
-                 std::array{ value_low, value_hi });
+  write_register(register_byte::cw_limit, std::array{ value_low, value_hi });
 }
 
 void rx_64::max_angle(hal::degrees p_angle)
@@ -335,8 +337,7 @@ void rx_64::max_angle(hal::degrees p_angle)
     hal::map(m_range.second, max_degree_range, position_raw_range));
   hal::byte const value_low = angle_byte;
   hal::byte const value_hi = (angle_byte >> 8);
-  write_register(register_byte::goal_position,
-                 std::array{ value_low, value_hi });
+  write_register(register_byte::ccw_limit, std::array{ value_low, value_hi });
 }
 
 void rx_64::speed(float p_rpms)
@@ -345,7 +346,7 @@ void rx_64::speed(float p_rpms)
   auto const speed_byte = static_cast<u16>(clamped_rpm * 8.9737);
   hal::byte const value_low = speed_byte;
   hal::byte const value_hi = (speed_byte >> 8);
-  write_register(register_byte::goal_position,
+  write_register(register_byte::moving_speed,
                  std::array{ value_low, value_hi });
 }
 
