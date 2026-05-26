@@ -17,7 +17,13 @@
 // only once, no matter how many times it is included.
 #pragma once
 
+#include <array>
 #include <cstdint>
+
+#include <numeric>
+#include <utility>
+
+#include <libhal-util/serial.hpp>
 #include <libhal-util/steady_clock.hpp>
 #include <libhal/pointers.hpp>
 #include <libhal/serial.hpp>
@@ -29,23 +35,17 @@ class rx_64
 public:
   struct config
   {
-    hertz baud_rate;
+    hertz baud_rate = 57600;
     uint8_t id;
     hal::degrees min_angle = 0;
     hal::degrees max_angle = 300;
-  };
-
-  struct angle_range
-  {
-    hal::degrees min_angle;
-    hal::degrees max_angle;
   };
 
   rx_64(hal::strong_ptr<hal::serial> const& p_serial,
         config const& p_settings,
         hal::strong_ptr<hal::steady_clock> const& p_clock);
 
-  enum class error_type
+  enum class error_type : u8
   {
     input_voltage,
     angle_limit,
@@ -93,52 +93,116 @@ public:
   };
 
   bool ping_id(uint8_t p_id);
-  void led_toggle(bool p_on);
+  void led(bool p_on);
 
   bool is_moving();
-  std::tuple<float, bool> get_speed();
-  float get_voltage();
-  uint8_t get_temp();
+  std::tuple<float, bool> speed();
+  float voltage();
+  uint8_t temperature();
 
-  float get_torque_limit();
-  uint8_t get_torque_enable();
-  uint8_t get_temp_limit();
-  float get_min_voltage();
-  float get_max_voltage();
-  hertz get_baud_rate();
-  uint16_t get_return_delay_time();
-  uint8_t get_id();
-  hal::degrees get_min_angle();
-  hal::degrees get_max_angle();
-  hal::degrees get_current_angle();
-  uint16_t get_punch();
-  float get_moving_speed();
+  float torque_limit();
+  uint8_t torque_enable();
+  uint8_t temperature_limit();
+  float min_voltage();
+  float max_voltage();
+  hertz baud_rate();
+  uint16_t return_delay_time();
+  uint8_t id();
+  hal::degrees min_angle();
+  hal::degrees max_angle();
+  hal::degrees position();
+  uint16_t punch();
+  float moving_speed();
 
   void position(hal::degrees p_angle);
-  void set_torque_enable(bool p_enable);
-  void set_torque_limit(float p_percent);
-  void set_temp_limit(uint8_t p_temp);
-  void set_min_voltage(float p_voltage);
-  void set_max_voltage(float p_voltage);
-  void set_baud_rate(hertz p_baud);
-  void set_return_delay_time(uint16_t p_microseconds);
-  void set_id(uint8_t p_id);
-  void set_min_angle(hal::degrees p_angle);
-  void set_max_angle(hal::degrees p_angle);
-  void set_speed(float p_rpms);
+  void torque_enable(bool p_enable);
+  void torque_limit(float p_percent);
+  void temperature_limit(uint8_t p_temperature);
+  void min_voltage(float p_voltage);
+  void max_voltage(float p_voltage);
+  void baud_rate(hertz p_baud);
+  void return_delay_time(uint16_t p_microseconds);
+  void id(uint8_t p_id);
+  void min_angle(hal::degrees p_angle);
+  void max_angle(hal::degrees p_angle);
+  void speed(float p_rpms);
 
-  void sync_move_to_position(hal::degrees p_angle, rx_64 p_opposing_servo);
+  void sync_position(hal::degrees p_angle, rx_64 p_opposing_servo);
 
 private:
-  void write_small_register(register_byte p_instruction, hal::byte p_value);
-  void write_large_register(register_byte p_instruction, uint16_t p_value);
+  template<usize Size>
+  auto read_register(register_byte p_register_address)
+  {
+    using namespace std::chrono_literals;
 
-  uint8_t read_small_register(register_byte p_register);
-  uint16_t read_large_register(register_byte p_register);
+    std::array<hal::byte, 8> send_bytes = {
+      0xFF, 0xFF, m_id, 0x04, 0x02, (hal::byte)p_register_address, 0x01, 0x00
+    };
+    hal::byte const checksum =
+      std::accumulate(&send_bytes[2], &send_bytes[7], 0);
+    send_bytes[7] = ~checksum;
+    hal::write(*m_serial, send_bytes, hal::never_timeout());
+    std::array<hal::byte, Size> return_array{};
+
+    try {
+      auto constexpr read_size = 6 + Size;
+      auto response =
+        hal::read<read_size>(*m_serial, hal::create_timeout(*m_clock, 500ms));
+      if (response[0] == 0xFF && response[1] == 0xFF) {
+        // device responded
+        hal::byte received_chksm =
+          std::accumulate(&response[2], &response[read_size - 2], 0);
+        received_chksm = ~received_chksm;
+        if (received_chksm == response[read_size - 1]) {
+          int constexpr end_address = 4 + Size;
+          std::copy(&response[5], &response[end_address], return_array.begin());
+        }
+        return return_array;
+      }
+    } catch (hal::timed_out const&) {
+      return return_array;
+    }
+    return return_array;
+  }
+
+  template<usize Size>
+  void write_register(register_byte p_register_address,
+                      std::array<hal::byte, Size> p_data)
+  {
+    auto constexpr send_data_size = 7 + Size;
+    std::array<hal::byte, send_data_size> send_bytes = {
+      0xFF, 0xFF, m_id, 0x04, 0x03, (hal::byte)p_register_address
+    };
+    for (uint8_t i = 0; i < p_data.size(); i++) {
+      send_bytes[6 + i] = p_data[i];
+    }
+    hal::byte const checksum =
+      std::accumulate(&send_bytes[2], &send_bytes[send_data_size - 1], 0);
+    send_bytes[send_data_size - 1] = ~checksum;
+
+    hal::write(*m_serial, send_bytes, hal::never_timeout());
+
+    try {
+      using namespace std::chrono_literals;
+      auto const response =
+        hal::read<6>(*m_serial, hal::create_timeout(*m_clock, 500ms));
+      if (response[0] == 0xFF && response[1] == 0xFF) {
+        // device responded
+        hal::byte received_chksm =
+          std::accumulate(&response[2], &response[4], 0);
+        received_chksm = ~received_chksm;
+        if (received_chksm == response[5]) {
+          // checksum match
+        }
+      }
+    } catch (hal::timed_out const&) {
+      return;
+    }
+  }
 
   hal::strong_ptr<hal::serial> m_serial;
   hal::strong_ptr<hal::steady_clock> m_clock;
   hal::byte m_id;
-  angle_range m_range;
+  std::pair<hal::degrees, hal::degrees> m_range;
 };
 }  // namespace hal::actuator
