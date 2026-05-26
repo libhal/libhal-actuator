@@ -124,12 +124,13 @@ float rx_64::torque_limit()
 {
   auto const bytes = rx_64::read_register<2>(register_byte::torque_limit);
   uint16_t const response = (bytes[0] | (bytes[1] << 8));
-  return (static_cast<float>(response) / 1023);
+  return (static_cast<float>(response) / 1023) * 100.0f;
 }
 
-uint8_t rx_64::torque_enable()
+bool rx_64::torque_enable()
 {
-  return rx_64::read_register<1>(rx_64::register_byte::torque_enable)[0];
+  auto const enabled_byte = rx_64::read_register<1>(rx_64::register_byte::torque_enable)[0];
+  return enabled_byte == 0x01;
 }
 
 uint8_t rx_64::temperature_limit()
@@ -243,7 +244,8 @@ void rx_64::torque_enable(bool p_enable)
 void rx_64::torque_limit(float p_percent)
 {
   auto const clamped_percent = std::clamp(p_percent, 0.0f, 100.0f);
-  auto const value = static_cast<uint16_t>(1023 * (clamped_percent / 100));
+  auto const value = static_cast<uint16_t>(hal::map(clamped_percent, std::make_pair(0.0f, 100.0f), std::make_pair(0, 1023)));
+  // auto const value = static_cast<uint16_t>(1023 * (clamped_percent / 100));
   hal::byte const value_low = value;
   hal::byte const value_hi = (value >> 8);
   write_register(register_byte::torque_limit,
@@ -308,13 +310,13 @@ void rx_64::baud_rate(hertz p_baud)
 
 void rx_64::return_delay_time(uint16_t p_microseconds)
 {
-  uint8_t const value = (p_microseconds / 2);
+  uint8_t const value = std::clamp((p_microseconds / 2), 0, 254);
   write_register(register_byte::return_delay, std::array{ value });
 }
 
 void rx_64::id(uint8_t p_id)
 {
-  m_id = p_id;
+  m_id = std::clamp(p_id , 0, 253);
   write_register(register_byte::id, std::array{ p_id });
 }
 
