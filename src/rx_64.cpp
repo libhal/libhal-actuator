@@ -97,7 +97,7 @@ bool rx_64::is_moving()
   return false;
 }
 
-std::tuple<float, bool> rx_64::speed()
+float rx_64::speed()
 {
   auto const bytes = rx_64::read_register<2>(register_byte::present_speed);
   uint16_t const response = (bytes[0] | (bytes[1] << 8));
@@ -105,7 +105,10 @@ std::tuple<float, bool> rx_64::speed()
   bool const clockwise = bits[9];  // 10th bit is direction
   bits.set(9, false);
   float const rpms = static_cast<float>(response) * 0.111f;
-  return { rpms, clockwise };
+  if (clockwise) {
+    return rpms;
+  }
+  return -rpms;
 }
 
 float rx_64::voltage()
@@ -129,7 +132,8 @@ float rx_64::torque_limit()
 
 bool rx_64::torque_enable()
 {
-  auto const enabled_byte = rx_64::read_register<1>(rx_64::register_byte::torque_enable)[0];
+  auto const enabled_byte =
+    rx_64::read_register<1>(rx_64::register_byte::torque_enable)[0];
   return enabled_byte == 0x01;
 }
 
@@ -244,7 +248,8 @@ void rx_64::torque_enable(bool p_enable)
 void rx_64::torque_limit(float p_percent)
 {
   auto const clamped_percent = std::clamp(p_percent, 0.0f, 100.0f);
-  auto const value = static_cast<uint16_t>(hal::map(clamped_percent, std::make_pair(0.0f, 100.0f), std::make_pair(0, 1023)));
+  auto const value = static_cast<uint16_t>(hal::map(
+    clamped_percent, std::make_pair(0.0f, 100.0f), std::make_pair(0, 1023)));
   // auto const value = static_cast<uint16_t>(1023 * (clamped_percent / 100));
   hal::byte const value_low = value;
   hal::byte const value_hi = (value >> 8);
@@ -316,7 +321,7 @@ void rx_64::return_delay_time(uint16_t p_microseconds)
 
 void rx_64::id(uint8_t p_id)
 {
-  m_id = std::clamp(p_id , 0, 253);
+  m_id = std::clamp(p_id, (uint8_t)0, (uint8_t)253);
   write_register(register_byte::id, std::array{ p_id });
 }
 
@@ -357,7 +362,7 @@ void rx_64::sync_position(hal::degrees p_angle, rx_64 p_opposing_servo)
   auto const clamped_angle = std::clamp(p_angle, m_range.first, m_range.second);
   auto const angle_byte = static_cast<u16>(
     hal::map(clamped_angle, max_degree_range, position_raw_range));
-  auto const reversed_angle = 1023 - angle_byte;
+  auto const reversed_angle = position_raw_range.second - angle_byte;
 
   uint8_t const angle_low = angle_byte;
   uint8_t const angle_hi = (angle_byte >> 8);

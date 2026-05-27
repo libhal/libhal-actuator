@@ -30,18 +30,18 @@ void application()
   auto console = resources::console();
   auto uart = resources::uart2();
 
-  hal::print(*console, "Dynamixel Demo Starting...\n");
+  hal::print(*console, "Dynamixel Dual Demo Starting...\n");
 
   hal::actuator::rx_64::config servo1_config = {
-    .baud_rate = 57600, .id = 4, .min_angle = 0, .max_angle = 300
+    .baud_rate = 57600, .id = 4, .min_angle = 0, .max_angle = 230
   };
 
-  // hal::actuator::rx_64::config servo2_config = {
-  //   .baud_rate = 57600, .id = 2, .min_angle = 70, .max_angle = 230
-  // };
+  hal::actuator::rx_64::config servo2_config = {
+    .baud_rate = 57600, .id = 2, .min_angle = 70, .max_angle = 230
+  };
 
   auto servo1 = hal::actuator::rx_64(uart, servo1_config, clock);
-  // auto servo2 = hal::actuator::rx_64(uart, servo2_config, clock);
+  auto servo2 = hal::actuator::rx_64(uart, servo2_config, clock);
 
   auto min_angle = servo1.min_angle();
   hal::print<32>(*console, "\nMin Angle: %.2f", min_angle);
@@ -83,28 +83,22 @@ void application()
   hal::print<32>(*console, "\nRPMs: %.2f", moving_speed);
   hal::delay(*clock, 10ms);
 
-  // servo1.set_torque_limit(100.0f);
-
   // loop and move servo
   while (true) {
-    hal::print(*console, "\n0");
-    servo1.position(0);
-    // servo1.sync_move_to_position(70, servo2);
+    hal::print(*console, "\n70");
+    servo1.sync_position(70, servo2);
     hal::delay(*clock, 3000ms);
 
     hal::print(*console, "\n150");
-    servo1.position(150);
-    // servo1.sync_move_to_position(150, servo2);
+    servo1.sync_position(150, servo2);
     hal::delay(*clock, 3000ms);
 
-    hal::print(*console, "\n300");
-    servo1.position(300);
-    // servo1.sync_move_to_position(230, servo2);
+    hal::print(*console, "\n230");
+    servo1.sync_position(230, servo2);
     hal::delay(*clock, 3000ms);
 
     hal::print(*console, "\n150");
-    servo1.position(150);
-    // servo1.sync_move_to_position(150, servo2);
+    servo1.sync_position(150, servo2);
     hal::delay(*clock, 3000ms);
   }
 }
