@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstdint>
-
 #include <algorithm>
 #include <bitset>
+#include <chrono>
 #include <numeric>
+#include <utility>
 
 #include <libhal-actuator/rx_64.hpp>
 #include <libhal-util/bit.hpp>
@@ -34,6 +34,8 @@ namespace hal::actuator {
 constexpr auto position_raw_range = std::make_pair<u16, u16>(0, 1023);
 constexpr auto max_degree_range =
   std::make_pair<hal::degrees, hal::degrees>(0.0f, 300.0f);
+constexpr auto rpm_range = std::make_pair<rpm, rpm>(0, 114);
+constexpr auto rpm_raw_range = std::make_pair<u16, u16>(0, 1023);
 
 rx_64::rx_64(hal::strong_ptr<hal::serial> const& p_serial,
              config const& p_settings,
@@ -46,7 +48,7 @@ rx_64::rx_64(hal::strong_ptr<hal::serial> const& p_serial,
   m_serial->configure({ .baud_rate = p_settings.baud_rate });
   baud_rate(p_settings.baud_rate);
   hal::delay(*m_clock, 5ms);
-  torque_enable(true);
+  torque_enable(p_settings.torque_enable);
   hal::delay(*m_clock, 5ms);
   min_angle(p_settings.min_angle);
   m_range.first = p_settings.min_angle;
@@ -57,7 +59,7 @@ rx_64::rx_64(hal::strong_ptr<hal::serial> const& p_serial,
 };
 
 // TODO: consider keeping this function
-bool rx_64::ping_id(uint8_t p_id)
+bool rx_64::ping_id(u8 p_id)
 {
   using namespace std::chrono_literals;
   std::array<hal::byte, 6> send_bytes = { 0xFF, 0xFF, (hal::byte)p_id,
@@ -71,7 +73,7 @@ bool rx_64::ping_id(uint8_t p_id)
       hal::read<6>(*m_serial, hal::create_timeout(*m_clock, 500ms));
     if (response[0] == 0xFF && response[1] == 0xFF) {
       // device responded, id is valid
-      m_id = p_id;
+      return true;
     }
   } catch (hal::timed_out const&) {
     return false;
@@ -81,11 +83,8 @@ bool rx_64::ping_id(uint8_t p_id)
 
 void rx_64::led(bool p_on)
 {
-  hal::byte toggle_byte = 0x00;
-  if (p_on) {
-    toggle_byte = 0x01;
-  }
-  write_register(register_byte::led_toggle, std::array{ toggle_byte });
+  write_register(register_byte::led_toggle,
+                 std::array{ static_cast<byte>(p_on) });
 }
 
 bool rx_64::is_moving()
@@ -100,11 +99,11 @@ bool rx_64::is_moving()
 float rx_64::speed()
 {
   auto const bytes = rx_64::read_register<2>(register_byte::present_speed);
-  uint16_t const response = (bytes[0] | (bytes[1] << 8));
+  u16 const response = (bytes[0] | (bytes[1] << 8));
   std::bitset<16> bits{ response };
   bool const clockwise = bits[9];  // 10th bit is direction
   bits.set(9, false);
-  float const rpms = static_cast<float>(response) * 0.111f;
+  float const rpms = hal::map(response, rpm_raw_range, rpm_range);
   if (clockwise) {
     return rpms;
   }
@@ -115,10 +114,10 @@ float rx_64::voltage()
 {
   auto const response =
     rx_64::read_register<1>(register_byte::present_voltage)[0];
-  return (static_cast<float>(response) / 10);
+  return static_cast<float>(response) / 10;
 }
 
-uint8_t rx_64::temperature()
+u8 rx_64::temperature()
 {
   return rx_64::read_register<1>(register_byte::present_temp)[0];
 }
@@ -126,7 +125,7 @@ uint8_t rx_64::temperature()
 float rx_64::torque_limit()
 {
   auto const bytes = rx_64::read_register<2>(register_byte::torque_limit);
-  uint16_t const response = (bytes[0] | (bytes[1] << 8));
+  u16 const response = (bytes[0] | (bytes[1] << 8));
   return (static_cast<float>(response) / 1023) * 100.0f;
 }
 
@@ -137,7 +136,7 @@ bool rx_64::torque_enable()
   return enabled_byte == 0x01;
 }
 
-uint8_t rx_64::temperature_limit()
+u8 rx_64::temperature_limit()
 {
   return rx_64::read_register<1>(register_byte::temp_limit)[0];
 }
@@ -180,13 +179,13 @@ hertz rx_64::baud_rate()
   }
 }
 
-uint16_t rx_64::return_delay_time()
+std::chrono::microseconds rx_64::return_delay_time()
 {
   auto const response = rx_64::read_register<1>(register_byte::return_delay)[0];
-  return (response * 2);
+  return std::chrono::microseconds(response * 2);
 }
 
-uint8_t rx_64::id()
+u8 rx_64::id()
 {
   return m_id;
 }
@@ -194,41 +193,41 @@ uint8_t rx_64::id()
 hal::degrees rx_64::min_angle()
 {
   auto const bytes = rx_64::read_register<2>(register_byte::cw_limit);
-  uint16_t const angle_byte = (bytes[0] | (bytes[1] << 8));
+  u16 const angle_byte = (bytes[0] | (bytes[1] << 8));
   return hal::map(angle_byte, position_raw_range, max_degree_range);
 }
 
 hal::degrees rx_64::max_angle()
 {
   auto const bytes = rx_64::read_register<2>(register_byte::ccw_limit);
-  uint16_t const angle_byte = (bytes[0] | (bytes[1] << 8));
+  u16 const angle_byte = (bytes[0] | (bytes[1] << 8));
   return hal::map(angle_byte, position_raw_range, max_degree_range);
 }
 
 hal::degrees rx_64::position()
 {
   auto const bytes = rx_64::read_register<2>(register_byte::present_position);
-  uint16_t const angle_byte = (bytes[0] | (bytes[1] << 8));
+  u16 const angle_byte = (bytes[0] | (bytes[1] << 8));
   return hal::map(angle_byte, position_raw_range, max_degree_range);
 }
 
-uint16_t rx_64::punch()
+u16 rx_64::punch()
 {
   auto const bytes = rx_64::read_register<2>(register_byte::punch);
   return (bytes[0] | (bytes[1] << 8));
 }
 
-float rx_64::moving_speed()
+rpm rx_64::moving_speed()
 {
   auto const bytes = rx_64::read_register<2>(register_byte::moving_speed);
-  uint16_t const response = (bytes[0] | (bytes[1] << 8));
-  return (static_cast<float>(response) / 8.9737f);
+  u16 const response = (bytes[0] | (bytes[1] << 8));
+  return hal::map(response, rpm_raw_range, rpm_range);
 }
 
 void rx_64::position(hal::degrees p_angle)
 {
   auto const clamped_angle = std::clamp(p_angle, m_range.first, m_range.second);
-  auto const angle_byte = static_cast<uint16_t>(
+  auto const angle_byte = static_cast<u16>(
     hal::map(clamped_angle, max_degree_range, position_raw_range));
   hal::byte const value_low = angle_byte;
   hal::byte const value_hi = (angle_byte >> 8);
@@ -238,49 +237,46 @@ void rx_64::position(hal::degrees p_angle)
 
 void rx_64::torque_enable(bool p_enable)
 {
-  hal::byte data_byte = 0x00;
-  if (p_enable) {
-    data_byte = 0x01;
-  }
-  write_register(register_byte::torque_enable, std::array{ data_byte });
+  write_register(register_byte::led_toggle,
+                 std::array{ static_cast<byte>(p_enable) });
 }
 
 void rx_64::torque_limit(float p_percent)
 {
   auto const clamped_percent = std::clamp(p_percent, 0.0f, 100.0f);
-  auto const value = static_cast<uint16_t>(hal::map(
+  auto const value = static_cast<u16>(hal::map(
     clamped_percent, std::make_pair(0.0f, 100.0f), std::make_pair(0, 1023)));
-  // auto const value = static_cast<uint16_t>(1023 * (clamped_percent / 100));
   hal::byte const value_low = value;
   hal::byte const value_hi = (value >> 8);
   write_register(register_byte::torque_limit,
                  std::array{ value_low, value_hi });
 }
 
-void rx_64::temperature_limit(uint8_t p_temperature)
+void rx_64::temperature_limit(u8 p_temperature)
 {
-  auto const clamped_temp = std::clamp(p_temperature, (uint8_t)0, (uint8_t)100);
+  auto const clamped_temp =
+    std::clamp(p_temperature, static_cast<u8>(0), static_cast<u8>(100));
   write_register(register_byte::temp_limit, std::array{ clamped_temp });
 }
 
 void rx_64::min_voltage(float p_voltage)
 {
   auto const clamped_volt = std::clamp(p_voltage, 5.0f, 25.0f);
-  auto const value = static_cast<uint8_t>(clamped_volt * 10);
+  auto const value = static_cast<u8>(clamped_volt * 10);
   write_register(register_byte::min_voltage, std::array{ value });
 }
 
 void rx_64::max_voltage(float p_voltage)
 {
   auto const clamped_volt = std::clamp(p_voltage, 5.0f, 25.0f);
-  auto const value = static_cast<uint8_t>(clamped_volt * 10);
+  auto const value = static_cast<u8>(clamped_volt * 10);
   write_register(register_byte::max_voltage, std::array{ value });
 }
 
 void rx_64::baud_rate(hertz p_baud)
 {
-  uint8_t baud_byte = 0x00;
-  switch ((uint16_t)p_baud) {
+  u8 baud_byte = 0x00;
+  switch ((u16)p_baud) {
     case 1000000:
       baud_byte = 1;
       break;
@@ -311,17 +307,19 @@ void rx_64::baud_rate(hertz p_baud)
       break;
   }
   write_register(register_byte::baud_rate, std::array{ baud_byte });
+  m_serial->configure({ .baud_rate = p_baud });
 }
 
-void rx_64::return_delay_time(uint16_t p_microseconds)
+void rx_64::return_delay_time(std::chrono::microseconds p_microseconds)
 {
-  uint8_t const value = std::clamp((p_microseconds / 2), 0, 254);
-  write_register(register_byte::return_delay, std::array{ value });
+  auto const value = static_cast<int>(p_microseconds.count() / 2);
+  auto const clamped_value = static_cast<u8>(std::clamp(value, 0, 254));
+  write_register(register_byte::return_delay, std::array{ clamped_value });
 }
 
-void rx_64::id(uint8_t p_id)
+void rx_64::id(u8 p_id)
 {
-  m_id = std::clamp(p_id, (uint8_t)0, (uint8_t)253);
+  m_id = std::clamp(p_id, (u8)0, (u8)253);
   write_register(register_byte::id, std::array{ p_id });
 }
 
@@ -329,7 +327,7 @@ void rx_64::min_angle(hal::degrees p_angle)
 {
   m_range.first =
     std::clamp(p_angle, max_degree_range.first, max_degree_range.second);
-  auto const angle_byte = static_cast<uint16_t>(
+  auto const angle_byte = static_cast<u16>(
     hal::map(m_range.first, max_degree_range, position_raw_range));
   hal::byte const value_low = angle_byte;
   hal::byte const value_hi = (angle_byte >> 8);
@@ -340,7 +338,7 @@ void rx_64::max_angle(hal::degrees p_angle)
 {
   m_range.second =
     std::clamp(p_angle, max_degree_range.first, max_degree_range.second);
-  auto const angle_byte = static_cast<uint16_t>(
+  auto const angle_byte = static_cast<u16>(
     hal::map(m_range.second, max_degree_range, position_raw_range));
   hal::byte const value_low = angle_byte;
   hal::byte const value_hi = (angle_byte >> 8);
@@ -349,8 +347,10 @@ void rx_64::max_angle(hal::degrees p_angle)
 
 void rx_64::speed(float p_rpms)
 {
-  auto const clamped_rpm = std::clamp(p_rpms, 0.0f, 114.0f);
-  auto const speed_byte = static_cast<u16>(clamped_rpm * 8.9737);
+  auto const clamped_rpm =
+    std::clamp(p_rpms, rpm_range.first, rpm_range.second);
+  auto const speed_byte =
+    static_cast<u16>(hal::map(clamped_rpm, rpm_range, rpm_raw_range));
   hal::byte const value_low = speed_byte;
   hal::byte const value_hi = (speed_byte >> 8);
   write_register(register_byte::moving_speed,
@@ -364,10 +364,10 @@ void rx_64::sync_position(hal::degrees p_angle, rx_64 p_opposing_servo)
     hal::map(clamped_angle, max_degree_range, position_raw_range));
   auto const reversed_angle = position_raw_range.second - angle_byte;
 
-  uint8_t const angle_low = angle_byte;
-  uint8_t const angle_hi = (angle_byte >> 8);
-  uint8_t const reversed_low = reversed_angle;
-  uint8_t const reversed_hi = (reversed_angle >> 8);
+  u8 const angle_low = angle_byte;
+  u8 const angle_hi = (angle_byte >> 8);
+  u8 const reversed_low = reversed_angle;
+  u8 const reversed_hi = (reversed_angle >> 8);
 
   auto const servo2_id = p_opposing_servo.id();
   std::array<hal::byte, 14> send_bytes = {

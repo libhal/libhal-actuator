@@ -14,6 +14,7 @@
 
 #include <array>
 #include <cstdint>
+
 #include <libhal-actuator/rx_64.hpp>
 #include <libhal-util/serial.hpp>
 #include <libhal-util/steady_clock.hpp>

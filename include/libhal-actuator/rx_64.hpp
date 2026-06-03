@@ -17,9 +17,9 @@
 // only once, no matter how many times it is included.
 #pragma once
 
-#include <array>
 #include <cstdint>
 
+#include <array>
 #include <numeric>
 #include <utility>
 
@@ -31,10 +31,10 @@
 
 namespace hal::actuator {
 /**
- * @brief Dynamixel RX-64 is an exclusive smart actuator capable of reporting
- * position, speed, and voltage. They also have the ability to set limits for
- * angles, voltage, torque, temperature, compliance margins and slopes, and
- * response delay.
+ * @brief Dynamixel RX-64 is a smart actuator capable of reporting position,
+ * speed, and voltage. They also have the ability to set limits for angles,
+ * voltage, torque, temperature, compliance margins and slopes, and response
+ * delay.
  *
  */
 class rx_64
@@ -55,6 +55,8 @@ public:
     hal::degrees min_angle = 0;
     /// @brief Maximum angle to limit movement to
     hal::degrees max_angle = 300;
+    /// @brief Enable torque on setup
+    bool torque_enable = true;
   };
 
   /**
@@ -68,18 +70,280 @@ public:
         config const& p_settings,
         hal::strong_ptr<hal::steady_clock> const& p_clock);
 
-  // TODO: implement or delete error_type enum
-  // enum class error_type : u8
-  // {
-  //   input_voltage,
-  //   angle_limit,
-  //   instruction_range,
-  //   checksum,
-  //   current_overload,
-  //   instruction_error,
-  //   no_error
-  // };
+  /**
+   * @brief Check if an ID is in use.
+   *
+   * @param p_id - ID to check.
+   * @return true - Servo using this ID is present on bus.
+   * @return false - No connected servos using this ID.
+   */
+  bool ping_id(uint8_t p_id);
 
+  /**
+   * @brief Toggle LED on or off.
+   *
+   * @param p_on On status of LED to set.
+   */
+  void led(bool p_on);
+
+  /**
+   * @brief Moving status of rx_64.
+   *
+   * @return true - rx_64 is moving.
+   * @return false - rx_64 is not moving.
+   */
+  [[nodiscard]] bool is_moving();
+
+  /**
+   * @brief Get current speed in RPMs. Positive values indicate spinning
+   * clockwise. Negative values indicate spinning counter clockwise.
+   *
+   * @return rpm - Current moving speed in RPMs.
+   */
+  rpm speed();
+
+  /**
+   * @brief Get current voltage supplied.
+   *
+   * @return volts - Current voltage supplied.
+   */
+  volts voltage();
+
+  /**
+   * @brief Get the internal temperature.
+   *
+   * @return uint8_t - Temperature in Celsius.
+   */
+  uint8_t temperature();
+
+  /**
+   * @brief Get the maximum torque available.
+   *
+   * @return float - Maximum torque available as a percentage.
+   */
+  float torque_limit();
+
+  /**
+   * @brief Get the torque enabled flag.
+   *
+   * @return true - Torque usage enabled.
+   * @return false - Torque usage disabled.
+   */
+  bool torque_enable();
+
+  /**
+   * @brief Get the temperature limit before the Overheating Error flag is set
+   * to true.
+   *
+   * @return uint8_t - Temperature limit in Celsius.
+   */
+  uint8_t temperature_limit();
+
+  /**
+   * @brief Get the minimum operating voltage.
+   *
+   * @return volts - Minimum usable operating voltage.
+   */
+  volts min_voltage();
+
+  /**
+   * @brief Get the maximum operating voltage.
+   *
+   * @return volts - Maximum usable operating voltage.
+   */
+  volts max_voltage();
+
+  /**
+   * @brief Get the baud rate used for serial communication.
+   *
+   * @return hertz - Baud rate in Hertz.
+   */
+  hertz baud_rate();
+
+  /**
+   * @brief Get the time between sending an instruction and receiveing a status
+   * packet.
+   *
+   * @return std::chrono::microseconds - Time in microseconds to wait
+   * before sending status packet.
+   */
+  std::chrono::microseconds return_delay_time();
+
+  /**
+   * @brief Get the unique ID.
+   *
+   * @return uint8_t - ID of the servo
+   */
+  uint8_t id();
+
+  /**
+   * @brief Get the minimum angle to restrain motion to.
+   *
+   * @return hal::degrees - Minimum angle in degrees.
+   */
+  hal::degrees min_angle();
+
+  /**
+   * @brief Get the maximum angle to restrain motion to.
+   *
+   * @return hal::degrees - Maximum angle in degrees.
+   */
+  hal::degrees max_angle();
+
+  /**
+   * @brief Get the current position.
+   *
+   * @return hal::degrees - Current position in degrees.
+   */
+  hal::degrees position();
+
+  /**
+   * @brief Get the punch, or minimum current needed to operate.
+   *
+   * @return uint16_t - Minimum current needed to operate.
+   */
+  uint16_t punch();
+
+  /**
+   * @brief Get the current speed in RPMs.
+   *
+   * @return float - Current speed in RPMs.
+   */
+  rpm moving_speed();
+
+  /**
+   * @brief Move to position.
+   *
+   * Angle to move to must be within range of min and max angle.
+   *
+   * @param p_angle - Angle to move to.
+   */
+  void position(hal::degrees p_angle);
+
+  /**
+   * @brief Enable or disable torque usage.
+   *
+   * @param p_enable - Set to true to enable torque usage.
+   */
+  void torque_enable(bool p_enable);
+
+  /**
+   * @brief Set the maximum torque available to use.
+   *
+   * Range is 0.0 - 100.0, Values exceeding these bounds will be clamped to be
+   * 0.0 when lower and 100.0 when higher. Example: if 50% torque limit is
+   * desired, p_percent = 50.0
+   *
+   * @param p_percent - Percentage to set max torque to
+   */
+  void torque_limit(float p_percent);
+
+  /**
+   * @brief Set the maximum temperature.
+   *
+   * If internal temperature goes beyond this number, the Overheating Error flag
+   * is set to true. Range is 0.0 - 100.0, Values exceeding these bounds will be
+   * clamped to be 0.0 when lower and 100.0 when higher.
+   *
+   * @param p_temperature - Temperature in Celsius.
+   */
+  void temperature_limit(uint8_t p_temperature);
+
+  /**
+   * @brief Set the minimum operating voltage.
+   *
+   * If the input voltage is below this number, the Voltage Range Error flag is
+   * set to true. Range is 5.0 - 25.0, Values exceeding these bounds will be
+   * clamped to be 5.0 when lower and 25.0 when higher.
+   *
+   * @param p_voltage - Minimum operating voltage.
+   */
+  void min_voltage(volts p_voltage);
+
+  /**
+   * @brief Set the maximum operating voltage.
+   *
+   * If the input voltage is above this number, the Voltage Range Error flag is
+   * set to true. Range is 5.0 - 25.0, Values exceeding these bounds will be
+   * clamped to be 5.0 when lower and 25.0 when higher.
+   *
+   * @param p_voltage - Maximum operating voltage.
+   */
+  void max_voltage(volts p_voltage);
+
+  /**
+   * @brief Set the baud rate used for serial communication. Serial used to
+   * communicate will also be changed to match the baud rate.
+   *
+   * Available baud rates are: 57600, 9600, 19200, 115200, 200000, 250000,
+   * 400000, 500000, and 1000000. If an invalid baud rate is given, the default
+   * baud rate of 57600 is used.
+   *
+   * @param p_baud - Baud rate used for serial communication
+   */
+  void baud_rate(hertz p_baud);
+
+  /**
+   * @brief Set the time between sending an instruction and receiveing a status
+   * packet.
+   *
+   * Range is 0 - 508 microseconds. Values exceeding these bounds will be
+   * clamped to be 0 when lower and 508 when higher.
+   *
+   * @param p_microseconds - Time in microseconds to wait
+   */
+  void return_delay_time(std::chrono::microseconds p_microseconds);
+
+  /**
+   * @brief Set the ID to use when communicating.
+   *
+   * Range is 0 - 253. ID 254 is reserved as the broadcast ID.
+   *
+   * @param p_id - ID to use.
+   */
+  void id(uint8_t p_id);
+
+  /**
+   * @brief Set the minimum angle to restrain motion to.
+   *
+   * Range of motion is 0.0 - 300.0, Values exceeding these bounds will be
+   * clamped to be 0.0 when lower and 300.0 when higher.
+   *
+   * @param p_angle - Minimum angle used to restrain motion to.
+   */
+  void min_angle(hal::degrees p_angle);
+
+  /**
+   * @brief Set the maximum angle to restrain motion to.
+   *
+   * Range of motion is 0.0 - 300.0, Values exceeding these bounds will be
+   * clamped to be 0.0 when lower and 300.0 when higher.
+   *
+   * @param p_angle - Maximum angle used to restrain motion to.
+   */
+  void max_angle(hal::degrees p_angle);
+
+  /**
+   * @brief Set the speed to use when moving.
+   *
+   * Range is 0 - 114 RPM. Values exceeding these bounds will be clamped to be 0
+   * when lower and 114 when higher.
+   *
+   * @param p_rpms - Speed in RPM to use when moving
+   */
+  void speed(rpm p_rpms);
+
+  /**
+   * @brief Move attached opposing servos together.
+   *
+   * Range of motion must be within min and max angles.
+   *
+   * @param p_angle - Angle to set the leading servo to.
+   * @param p_opposing_servo - Opposing servo to send reversed angles to.
+   */
+  void sync_position(hal::degrees p_angle, rx_64 p_opposing_servo);
+
+private:
   /**
    * @brief Addresses for registers of rx_64
    *
@@ -156,267 +420,6 @@ public:
     punch = 0x30
   };
 
-  /**
-   * @brief Check if an ID is in use.
-   *
-   * @param p_id - ID to check.
-   * @return true - Servo using this ID is present on bus.
-   * @return false - No connected servos using this ID.
-   */
-  bool ping_id(uint8_t p_id);
-
-  /**
-   * @brief Toggle LED on or off.
-   *
-   * @param p_on On status of LED to set.
-   */
-  void led(bool p_on);
-
-  /**
-   * @brief Moving status of rx_64.
-   *
-   * @return true - rx_64 is moving.
-   * @return false - rx_64 is not moving.
-   */
-  bool is_moving();
-
-  /**
-   * @brief Get current speed in RPMs. Positive values indicate spinning
-   * clockwise. Negative values indicate spinning counter clockwise.
-   *
-   * @return float - Current moving speed in RPMs.
-   */
-  float speed();
-
-  /**
-   * @brief Get current voltage supplied.
-   *
-   * @return float - Current voltage supplied.
-   */
-  float voltage();
-
-  /**
-   * @brief Get the internal temperature.
-   *
-   * @return uint8_t - Temperature in Celsius.
-   */
-  uint8_t temperature();
-
-  /**
-   * @brief Get the maximum torque available.
-   *
-   * @return float - Maximum torque available as a percentage.
-   */
-  float torque_limit();
-
-  /**
-   * @brief Get the torque enabled flag.
-   *
-   * @return true - Torque usage enabled.
-   * @return false - Torque usage disabled.
-   */
-  bool torque_enable();
-
-  /**
-   * @brief Get the temperature limit before the Overheating Error flag is set
-   * to true.
-   *
-   * @return uint8_t - Temperature limit in Celsius.
-   */
-  uint8_t temperature_limit();
-
-  /**
-   * @brief Get the minimum operating voltage.
-   *
-   * @return float - Minimum usable operating voltage.
-   */
-  float min_voltage();
-
-  /**
-   * @brief Get the maximum operating voltage.
-   *
-   * @return float - Maximum usable operating voltage.
-   */
-  float max_voltage();
-
-  /**
-   * @brief Get the baud rate used for serial communication.
-   *
-   * @return hertz - Baud rate in Hertz.
-   */
-  hertz baud_rate();
-
-  /**
-   * @brief Get the time between sending an instruction and receiveing a status
-   * packet.
-   *
-   * @return uint16_t - Time in microseconds to wait before sending status
-   * packet.
-   */
-  uint16_t return_delay_time();
-
-  /**
-   * @brief Get the unique ID.
-   *
-   * @return uint8_t - ID of the servo
-   */
-  uint8_t id();
-
-  /**
-   * @brief Get the minimum angle to restrain motion to.
-   *
-   * @return hal::degrees - Minimum angle in degrees.
-   */
-  hal::degrees min_angle();
-
-  /**
-   * @brief Get the maximum angle to restrain motion to.
-   *
-   * @return hal::degrees - Maximum angle in degrees.
-   */
-  hal::degrees max_angle();
-
-  /**
-   * @brief Get the current position.
-   *
-   * @return hal::degrees - Current position in degrees.
-   */
-  hal::degrees position();
-
-  /**
-   * @brief Get the punch, or minimum current needed to operate.
-   *
-   * @return uint16_t - Minimum current needed to operate.
-   */
-  uint16_t punch();
-
-  /**
-   * @brief Get the current speed in RPMs.
-   *
-   * @return float - Current speed in RPMs.
-   */
-  float moving_speed();
-
-  /**
-   * @brief Move to position.
-   *
-   * Angle to move to must be within range of min and max angle.
-   *
-   * @param p_angle - Angle to move to.
-   */
-  void position(hal::degrees p_angle);
-
-  /**
-   * @brief Enable or disable torque usage.
-   *
-   * @param p_enable - Set to true to enable torque usage.
-   */
-  void torque_enable(bool p_enable);
-
-  /**
-   * @brief Set the maximum torque available to use.
-   *
-   * Range is 0.0 - 100.0
-   * Example: if 50% torque limit is desired, p_percent = 50.0
-   *
-   * @param p_percent - Percentage to set max torque to
-   */
-  void torque_limit(float p_percent);
-
-  /**
-   * @brief Set the maximum temperature.
-   *
-   * If internal temperature goes beyond this number, the Overheating Error flag
-   * is set to true. Range is 0.0 - 100.0
-   *
-   * @param p_temperature - Temperature in Celsius.
-   */
-  void temperature_limit(uint8_t p_temperature);
-
-  /**
-   * @brief Set the minimum operating voltage.
-   *
-   * If the input voltage is below this number, the Voltage Range Error flag is
-   * set to true. Range is 5.0 - 25.0
-   *
-   * @param p_voltage - Minimum operating voltage.
-   */
-  void min_voltage(float p_voltage);
-
-  /**
-   * @brief Set the maximum operating voltage.
-   *
-   * If the input voltage is above this number, the Voltage Range Error flag is
-   * set to true. Range is 5.0 - 25.0
-   *
-   * @param p_voltage - Maximum operating voltage.
-   */
-  void max_voltage(float p_voltage);
-
-  /**
-   * @brief Set the baud rate used for serial communication.
-   *
-   * @param p_baud - Baud rate used for serial communication
-   */
-  void baud_rate(hertz p_baud);
-
-  /**
-   * @brief Set the time between sending an instruction and receiveing a status
-   * packet.
-   *
-   * Range is 0 - 508 microseconds.
-   *
-   * @param p_microseconds - Time in microseconds to wait
-   */
-  void return_delay_time(uint16_t p_microseconds);
-
-  /**
-   * @brief Set the ID to use when communicating.
-   *
-   * Range is 0 - 253. ID 254 is reserved as the broadcast ID.
-   *
-   * @param p_id - ID to use.
-   */
-  void id(uint8_t p_id);
-
-  /**
-   * @brief Set the minimum angle to restrain motion to.
-   *
-   * Range of motion is 0.0 - 300.0
-   *
-   * @param p_angle - Minimum angle used to restrain motion to.
-   */
-  void min_angle(hal::degrees p_angle);
-
-  /**
-   * @brief Set the maximum angle to restrain motion to.
-   *
-   * Range of motion is 0.0 - 300.0
-   *
-   * @param p_angle - Maximum angle used to restrain motion to.
-   */
-  void max_angle(hal::degrees p_angle);
-
-  /**
-   * @brief Set the speed to use when moving.
-   *
-   * Range is 0 - 114 RPM.
-   *
-   * @param p_rpms - Speed in RPM to use when moving
-   */
-  void speed(float p_rpms);
-
-  /**
-   * @brief Move attached opposing servos together.
-   *
-   * Range of motion must be within min and max angles.
-   *
-   * @param p_angle - Angle to set the leading servo to.
-   * @param p_opposing_servo - Opposing servo to send reversed angles to.
-   */
-  void sync_position(hal::degrees p_angle, rx_64 p_opposing_servo);
-
-private:
   template<usize Size>
   auto read_register(register_byte p_register_address)
   {
@@ -439,19 +442,14 @@ private:
     try {
       auto constexpr read_size = 6 + Size;
 
-      auto response =
+      auto const response =
         hal::read<read_size>(*m_serial, hal::create_timeout(*m_clock, 500ms));
       if (response[0] == 0xFF && response[1] == 0xFF) {
         // device responded
-        // TODO: checksum not working, fix later
-        // hal::byte calculated_chksm =
-        //   std::accumulate(&response[2], &response[read_size - 2], 0);
-        // calculated_chksm = ~calculated_chksm;
-        // if (calculated_chksm == response[read_size - 1]) {
+        // TODO(#47 and #48): check checksum and check for errors
         for (usize i = 0; i < Size; i++) {
           return_array[i] = response[5 + i];
         }
-        // }
         return return_array;
       }
     } catch (hal::timed_out const&) {
@@ -464,19 +462,18 @@ private:
   void write_register(register_byte p_register_address,
                       std::array<hal::byte, Size> p_data)
   {
-    auto constexpr send_data_size = 7 + Size;
-    hal::byte packet_length = 0x03 + Size;
-    std::array<hal::byte, send_data_size> send_bytes = {
-      0xFF, 0xFF, m_id, packet_length, 0x03, (hal::byte)p_register_address
-    };
-    for (uint8_t i = 0; i < p_data.size(); i++) {
-      send_bytes[6 + i] = p_data[i];
-    }
-    hal::byte const checksum =
-      std::accumulate(&send_bytes[2], &send_bytes[send_data_size - 1], 0);
-    send_bytes[send_data_size - 1] = ~checksum;
+    constexpr hal::byte packet_length = 0x03 + Size;
+    auto const address = static_cast<hal::byte>(p_register_address);
+    std::array<hal::byte, 6> header_bytes = { 0xFF,          0xFF, m_id,
+                                              packet_length, 0x03, address };
 
-    hal::write(*m_serial, send_bytes, hal::never_timeout());
+    hal::byte checksum = m_id + packet_length + 0x03 + address;
+    checksum += std::accumulate(p_data.begin(), p_data.end(), 0);
+    checksum = ~checksum;
+
+    hal::write(*m_serial, header_bytes, hal::never_timeout());
+    hal::write(*m_serial, p_data, hal::never_timeout());
+    hal::write(*m_serial, std::array{ checksum }, hal::never_timeout());
 
     try {
       using namespace std::chrono_literals;
@@ -489,6 +486,7 @@ private:
         received_chksm = ~received_chksm;
         if (received_chksm == response[5]) {
           // checksum match
+          // TODO(#47): check for errors
         }
       }
     } catch (hal::timed_out const&) {
@@ -498,7 +496,7 @@ private:
 
   hal::strong_ptr<hal::serial> m_serial;
   hal::strong_ptr<hal::steady_clock> m_clock;
-  hal::byte m_id;
   std::pair<hal::degrees, hal::degrees> m_range;
+  hal::byte m_id;
 };
 }  // namespace hal::actuator
