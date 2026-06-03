@@ -74,10 +74,25 @@ public:
    * @brief Check if an ID is in use.
    *
    * @param p_id - ID to check.
+   * @param p_serial - Serial to use to communicate with rx_64
+   * @param p_clock - A steady clock used to add delays for communication
    * @return true - Servo using this ID is present on bus.
    * @return false - No connected servos using this ID.
    */
-  bool ping_id(uint8_t p_id);
+  static bool ping_id(uint8_t p_id,
+                      hal::strong_ptr<hal::serial> const& p_serial,
+                      hal::strong_ptr<hal::steady_clock> const& p_clock);
+
+  /**
+   * @brief Iterate through all valid IDs and return the first ID that is
+   * present. If none are found, 254 (the broadcast ID) will be returned.
+   *
+   * @param p_serial - Serial to use to communicate with rx_64
+   * @param p_clock - A steady clock used to add delays for communication
+   * @return u8 - ID of present servo or 254 if none found
+   */
+  static u8 scan_for_id(hal::strong_ptr<hal::serial> const& p_serial,
+                        hal::strong_ptr<hal::steady_clock> const& p_clock);
 
   /**
    * @brief Toggle LED on or off.
@@ -295,13 +310,13 @@ public:
   void return_delay_time(std::chrono::microseconds p_microseconds);
 
   /**
-   * @brief Set the ID to use when communicating.
+   * @brief Reassign the ID to use when communicating.
    *
    * Range is 0 - 253. ID 254 is reserved as the broadcast ID.
    *
    * @param p_id - ID to use.
    */
-  void id(uint8_t p_id);
+  void reassign_id(uint8_t p_id);
 
   /**
    * @brief Set the minimum angle to restrain motion to.

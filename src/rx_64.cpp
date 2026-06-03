@@ -58,19 +58,20 @@ rx_64::rx_64(hal::strong_ptr<hal::serial> const& p_serial,
   hal::delay(*m_clock, 5ms);
 };
 
-// TODO: consider keeping this function
-bool rx_64::ping_id(u8 p_id)
+bool rx_64::ping_id(u8 p_id,
+                    hal::strong_ptr<hal::serial> const& p_serial,
+                    hal::strong_ptr<hal::steady_clock> const& p_clock)
 {
   using namespace std::chrono_literals;
   std::array<hal::byte, 6> send_bytes = { 0xFF, 0xFF, (hal::byte)p_id,
                                           0x02, 0x01, 0x00 };
   hal::byte const checksum = std::accumulate(&send_bytes[2], &send_bytes[5], 0);
   send_bytes[5] = ~checksum;
-  hal::write(*m_serial, send_bytes, hal::never_timeout());
+  hal::write(*p_serial, send_bytes, hal::never_timeout());
 
   try {
     auto response =
-      hal::read<6>(*m_serial, hal::create_timeout(*m_clock, 500ms));
+      hal::read<6>(*p_serial, hal::create_timeout(*p_clock, 500ms));
     if (response[0] == 0xFF && response[1] == 0xFF) {
       // device responded, id is valid
       return true;
@@ -79,6 +80,19 @@ bool rx_64::ping_id(u8 p_id)
     return false;
   }
   return true;
+}
+
+u8 rx_64::scan_for_id(hal::strong_ptr<hal::serial> const& p_serial,
+                      hal::strong_ptr<hal::steady_clock> const& p_clock)
+{
+  bool device_found = false;
+  for (u8 i = 0; i < 254; i++) {
+    device_found = rx_64::ping_id(i, p_serial, p_clock);
+    if (device_found) {
+      return i;
+    }
+  }
+  return 254;
 }
 
 void rx_64::led(bool p_on)
@@ -276,7 +290,7 @@ void rx_64::max_voltage(float p_voltage)
 void rx_64::baud_rate(hertz p_baud)
 {
   u8 baud_byte = 0x00;
-  switch ((u16)p_baud) {
+  switch (static_cast<u16>(p_baud)) {
     case 1000000:
       baud_byte = 1;
       break;
@@ -317,9 +331,9 @@ void rx_64::return_delay_time(std::chrono::microseconds p_microseconds)
   write_register(register_byte::return_delay, std::array{ clamped_value });
 }
 
-void rx_64::id(u8 p_id)
+void rx_64::reassign_id(u8 p_id)
 {
-  m_id = std::clamp(p_id, (u8)0, (u8)253);
+  m_id = std::clamp(p_id, static_cast<u8>(0), static_cast<u8>(253));
   write_register(register_byte::id, std::array{ p_id });
 }
 

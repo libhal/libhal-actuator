@@ -48,7 +48,7 @@ void application()
     hal::print<48>(*console, "\nSending Pings on baud %f : ", current_baud);
     for (uint8_t i = 0; i < 254; i++) {
       hal::print(*console, ".");
-      device_found = servo.ping_id(i);
+      device_found = hal::actuator::rx_64::ping_id(i, uart, clock);
       if (device_found) {
         hal::print<64>(*console, "\nID found: %d \n", i);
 
