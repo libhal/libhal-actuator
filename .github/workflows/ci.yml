@@ -64,12 +64,13 @@ jobs:
       library_dir: .
     secrets: inherit
 
-  demo_check_mod-stm32f1-v5:
-    uses: libhal/ci/.github/workflows/app_builder2.yml@5.x.y
-    with:
-      repo: libhal/libhal-actuator
-      dir: demos
-      compiler_profile: hal/tc/llvm
-      platform_profile: hal/bsp/mod-stm32f1-v5
-      library_dir: .
-    secrets: inherit
+  # # TODO(#53): Re-enable micromod demo below
+  # demo_check_mod-stm32f1-v5:
+  #   uses: libhal/ci/.github/workflows/app_builder2.yml@5.x.y
+  #   with:
+  #     repo: libhal/libhal-actuator
+  #     dir: demos
+  #     compiler_profile: hal/tc/llvm
+  #     platform_profile: hal/bsp/mod-stm32f1-v5
+  #     library_dir: .
+  #   secrets: inherit
