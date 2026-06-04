@@ -290,7 +290,7 @@ void rx_64::max_voltage(float p_voltage)
 void rx_64::baud_rate(hertz p_baud)
 {
   u8 baud_byte = 0x00;
-  switch (static_cast<u16>(p_baud)) {
+  switch (static_cast<u32>(p_baud)) {
     case 1000000:
       baud_byte = 1;
       break;
