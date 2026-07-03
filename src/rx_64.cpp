@@ -49,8 +49,6 @@ rx_64::rx_64(hal::strong_ptr<hal::serial> const& p_serial,
   m_serial->configure({ .baud_rate = p_settings.baud_rate });
   baud_rate(p_settings.baud_rate);
   hal::delay(*m_clock, 5ms);
-  torque_enable(p_settings.torque_enable);
-  hal::delay(*m_clock, 5ms);
   min_angle(p_settings.min_angle);
   m_range.first = p_settings.min_angle;
   hal::delay(*m_clock, 5ms);
@@ -375,12 +373,12 @@ void rx_64::speed(float p_rpms)
 void rx_64::sync_position(hal::degrees p_angle, rx_64 p_opposing_servo)
 {
   auto const clamped_angle = std::clamp(p_angle, m_range.first, m_range.second);
-  auto const angle_byte = static_cast<u16>(
+  auto const angle = static_cast<u16>(
     hal::map(clamped_angle, max_degree_range, position_raw_range));
-  auto const reversed_angle = position_raw_range.second - angle_byte;
+  auto const reversed_angle = position_raw_range.second - angle;
 
-  u8 const angle_low = angle_byte;
-  u8 const angle_hi = (angle_byte >> 8);
+  u8 const angle_low = angle;
+  u8 const angle_hi = (angle >> 8);
   u8 const reversed_low = reversed_angle;
   u8 const reversed_hi = (reversed_angle >> 8);
 
