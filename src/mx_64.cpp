@@ -48,8 +48,6 @@ mx_64::mx_64(hal::strong_ptr<hal::serial> const& p_serial,
   m_serial->configure({ .baud_rate = p_settings.baud_rate });
   baud_rate(p_settings.baud_rate);
   hal::delay(*m_clock, 5ms);
-  torque_enable(p_settings.torque_enable);
-  hal::delay(*m_clock, 5ms);
   min_angle(p_settings.min_angle);
   m_range.first = p_settings.min_angle;
   hal::delay(*m_clock, 5ms);
